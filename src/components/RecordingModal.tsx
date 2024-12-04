@@ -14,24 +14,65 @@ const RecordingModal: React.FC<RecordingModalProps> = ({ onClose, onStart }) => 
   const [resolution, setResolution] = useState('1920x1080');
   const [videoPreviewStream, setVideoPreviewStream] = useState<MediaStream | null>(null);
   const videoPreviewRef = React.useRef<HTMLVideoElement>(null);
+  const [screenStream, setScreenStream] = useState<MediaStream | null>(null);
 
   useEffect(() => {
-    navigator.mediaDevices.enumerateDevices().then((devices) => {
-      const videoInputs = devices.filter((device) => device.kind === 'videoinput');
-      const audioInputs = devices.filter((device) => device.kind === 'audioinput');
+    const getDevices = async () => {
+      try {
+        await navigator.mediaDevices.getUserMedia({ video: true, audio: true });
 
-      setVideoDevices(videoInputs);
-      setAudioDevices(audioInputs);
+        const devices = await navigator.mediaDevices.enumerateDevices();
+        const videoInputs = devices.filter((device) => device.kind === 'videoinput');
+        const audioInputs = devices.filter((device) => device.kind === 'audioinput');
 
-      if (videoInputs.length > 0) {
-        setSelectedVideoDevice(videoInputs[0].deviceId);
+        setVideoDevices(videoInputs);
+        setAudioDevices(audioInputs);
+
+        if (videoInputs.length > 0) {
+          setSelectedVideoDevice(videoInputs[0].deviceId);
+        }
+
+        if (audioInputs.length > 0) {
+          setSelectedAudioDevice(audioInputs[0].deviceId);
+        }
+      } catch (error) {
+        console.error('Error accessing media devices.', error);
       }
+    };
 
-      if (audioInputs.length > 0) {
-        setSelectedAudioDevice(audioInputs[0].deviceId);
-      }
-    });
+    getDevices();
   }, []);
+
+  const handleScreenRecordingSelection = async () => {
+    try {
+      const stream = await navigator.mediaDevices.getDisplayMedia({ video: true });
+      setScreenStream(stream);
+      if (videoPreviewRef.current) {
+        videoPreviewRef.current.srcObject = stream;
+      }
+    } catch (error) {
+      console.error('Error accessing screen for recording:', error);
+    }
+  };
+
+  useEffect(() => {
+    if (!isCameraRecording) {
+      handleScreenRecordingSelection();
+    } else {
+      // Stop screen stream if any
+      if (screenStream) {
+        screenStream.getTracks().forEach((track) => track.stop());
+        setScreenStream(null);
+      }
+    }
+    // Cleanup on unmount
+    return () => {
+      if (screenStream) {
+        screenStream.getTracks().forEach((track) => track.stop());
+      }
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [isCameraRecording]);
 
   useEffect(() => {
     const getPreviewStream = async () => {
@@ -69,6 +110,9 @@ const RecordingModal: React.FC<RecordingModalProps> = ({ onClose, onStart }) => 
     if (videoPreviewStream) {
       videoPreviewStream.getTracks().forEach((track) => track.stop());
     }
+    if (screenStream) {
+      screenStream.getTracks().forEach((track) => track.stop());
+    }
     onStart({
       isCameraRecording,
       videoDeviceId: selectedVideoDevice,
@@ -79,7 +123,7 @@ const RecordingModal: React.FC<RecordingModalProps> = ({ onClose, onStart }) => 
 
   return (
     <div className="fixed inset-0 bg-black bg-opacity-50 flex justify-center items-center z-50">
-      <div className="bg-white p-6 rounded space-y-4 w-full max-w-lg">
+      <div className="bg-gray-800 text-white p-6 rounded space-y-4 w-full max-w-lg">
         <h2 className="text-xl font-bold">Recording Options</h2>
         <div className="flex space-x-4">
           <label className="flex items-center space-x-2">
@@ -106,7 +150,7 @@ const RecordingModal: React.FC<RecordingModalProps> = ({ onClose, onStart }) => 
               <select
                 value={selectedVideoDevice}
                 onChange={(e) => setSelectedVideoDevice(e.target.value)}
-                className="w-full border p-2"
+                className="w-full border p-2 bg-gray-700 text-white rounded"
               >
                 {videoDevices.map((device) => (
                   <option key={device.deviceId} value={device.deviceId}>
@@ -120,7 +164,7 @@ const RecordingModal: React.FC<RecordingModalProps> = ({ onClose, onStart }) => 
               <select
                 value={resolution}
                 onChange={(e) => setResolution(e.target.value)}
-                className="w-full border p-2"
+                className="w-full border p-2 bg-gray-700 text-white rounded"
               >
                 <option value="1920x1080">1920x1080 (Landscape)</option>
                 <option value="1080x1920">1080x1920 (Portrait)</option>
@@ -141,7 +185,7 @@ const RecordingModal: React.FC<RecordingModalProps> = ({ onClose, onStart }) => 
           <select
             value={selectedAudioDevice}
             onChange={(e) => setSelectedAudioDevice(e.target.value)}
-            className="w-full border p-2"
+            className="w-full border p-2 bg-gray-700 text-white rounded"
           >
             {audioDevices.map((device) => (
               <option key={device.deviceId} value={device.deviceId}>
