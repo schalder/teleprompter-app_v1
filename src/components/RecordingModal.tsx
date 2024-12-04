@@ -15,6 +15,7 @@ const RecordingModal: React.FC<RecordingModalProps> = ({
   const [selectedVideoDevice, setSelectedVideoDevice] = useState<string>('');
   const [selectedAudioDevice, setSelectedAudioDevice] = useState<string>('');
   const [resolution, setResolution] = useState('1920x1080');
+  const [aspectRatio, setAspectRatio] = useState('16:9');
   const [videoPreviewStream, setVideoPreviewStream] = useState<MediaStream | null>(
     null
   );
@@ -91,14 +92,14 @@ const RecordingModal: React.FC<RecordingModalProps> = ({
   const updatePreviewStream = async () => {
     if (selectedVideoDevice && isCameraRecording) {
       const [width, height] = resolution.split('x').map(Number);
-      const aspectRatio = width / height;
+      const aspectRatioValue = width / height;
       const constraints: MediaStreamConstraints = {
         video: {
           deviceId: { exact: selectedVideoDevice },
-          width: { exact: width },
-          height: { exact: height },
-          aspectRatio: { exact: aspectRatio },
-          frameRate: { ideal: 30 },
+          width: { ideal: width, min: 640, max: width },
+          height: { ideal: height, min: 480, max: height },
+          aspectRatio: { ideal: aspectRatioValue },
+          frameRate: { ideal: 30, max: 30 },
         },
         audio: false,
       };
@@ -149,6 +150,7 @@ const RecordingModal: React.FC<RecordingModalProps> = ({
       videoDeviceId: selectedVideoDevice,
       audioDeviceId: selectedAudioDevice,
       resolution,
+      aspectRatio,
     });
   };
 
@@ -169,6 +171,7 @@ const RecordingModal: React.FC<RecordingModalProps> = ({
 
   const handleResolutionChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
     setResolution(e.target.value);
+    setAspectRatio(e.target.value === '1920x1080' ? '16:9' : '9:16');
   };
 
   return (
@@ -225,7 +228,7 @@ const RecordingModal: React.FC<RecordingModalProps> = ({
             <div className="mt-4">
               <div
                 className="w-full bg-black relative overflow-hidden"
-                style={{ aspectRatio: `${resolution.replace('x', '/')}` }}
+                style={{ aspectRatio: aspectRatio }}
               >
                 <video
                   ref={videoPreviewRef}
