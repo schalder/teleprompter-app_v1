@@ -11,6 +11,8 @@ const App: React.FC = () => {
   const mediaRecorderRef = useRef<MediaRecorder | null>(null);
   const chunks: BlobPart[] = [];
   const [showTeleprompter, setShowTeleprompter] = useState(true);
+  const [isCameraRecording, setIsCameraRecording] = useState(true);
+  const [startScrolling, setStartScrolling] = useState(false);
 
   const handleStartRecording = () => {
     setShowModal(true);
@@ -22,6 +24,7 @@ const App: React.FC = () => {
 
   const handleRecordingStart = async (options: any) => {
     setShowModal(false);
+    setIsCameraRecording(options.isCameraRecording);
 
     try {
       let stream: MediaStream;
@@ -55,6 +58,7 @@ const App: React.FC = () => {
       };
       mediaRecorderRef.current.start();
       setIsRecording(true);
+      setStartScrolling(true); // Start scrolling from beginning
 
       // Navigate to teleprompter screen
       setShowTeleprompter(true);
@@ -73,6 +77,7 @@ const App: React.FC = () => {
       videoRef.current.srcObject = null;
     }
     setIsRecording(false);
+    setStartScrolling(false);
   };
 
   const handleRecordAgain = () => {
@@ -82,7 +87,8 @@ const App: React.FC = () => {
   };
 
   return (
-    <div className="min-h-screen bg-gray-900 text-white flex items-center justify-center">
+    <div className="min-h-screen bg-gray-900 text-white flex flex-col items-center">
+      <h1 className="text-3xl font-bold mt-6">Teleprompter For Digital Creators</h1>
       <div className="w-full max-w-3xl p-4">
         {!videoUrl ? (
           <>
@@ -91,8 +97,12 @@ const App: React.FC = () => {
                 <Teleprompter
                   onStartRecording={handleStartRecording}
                   isRecording={isRecording}
+                  isCameraRecording={isCameraRecording}
+                  videoRef={videoRef}
+                  startScrolling={startScrolling}
+                  setStartScrolling={setStartScrolling}
                 />
-                {isRecording && (
+                {isRecording && isCameraRecording && (
                   <>
                     <div className="absolute bottom-4 right-4 w-32 h-32 md:w-48 md:h-48">
                       <video
@@ -109,6 +119,14 @@ const App: React.FC = () => {
                       Stop Recording
                     </button>
                   </>
+                )}
+                {isRecording && !isCameraRecording && (
+                  <button
+                    onClick={handleStopRecording}
+                    className="fixed top-4 right-4 px-4 py-2 bg-red-500 text-white rounded"
+                  >
+                    Stop Recording
+                  </button>
                 )}
               </div>
             )}
