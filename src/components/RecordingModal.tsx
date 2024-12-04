@@ -37,7 +37,6 @@ const RecordingModal: React.FC<RecordingModalProps> = ({ onClose, onStart }) => 
         }
       } catch (error) {
         console.error('Error accessing media devices.', error);
-        alert('Error accessing media devices. Please check your camera and microphone permissions.');
       }
     };
 
@@ -75,50 +74,37 @@ const RecordingModal: React.FC<RecordingModalProps> = ({ onClose, onStart }) => 
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [isCameraRecording]);
 
-  const updatePreviewStream = async () => {
-    if (selectedVideoDevice && isCameraRecording) {
-      const [width, height] = resolution.split('x').map(Number);
-      const constraints: MediaStreamConstraints = {
-        video: {
-          deviceId: selectedVideoDevice ? { ideal: selectedVideoDevice } : undefined,
-          width: { ideal: width },
-          height: { ideal: height },
-          frameRate: { ideal: 30 },
-        },
-        audio: false,
-      };
-      try {
-        // Stop existing video preview stream
-        if (videoPreviewStream) {
-          videoPreviewStream.getTracks().forEach((track) => track.stop());
-        }
-        const stream = await navigator.mediaDevices.getUserMedia(constraints);
-        setVideoPreviewStream(stream);
-        if (videoPreviewRef.current) {
-          videoPreviewRef.current.srcObject = stream;
-          // Adjust video element styling to match aspect ratio
-          videoPreviewRef.current.style.width = '100%';
-          videoPreviewRef.current.style.height = 'auto';
-          videoPreviewRef.current.style.aspectRatio = `${width} / ${height}`;
-        }
-      } catch (error) {
-        console.error('Error updating camera preview:', error);
-        alert('Selected camera or resolution is not supported.');
-      }
-    }
-  };
-
   useEffect(() => {
-    updatePreviewStream();
+    const getPreviewStream = async () => {
+      if (selectedVideoDevice && isCameraRecording) {
+        const constraints: MediaStreamConstraints = {
+          video: {
+            deviceId: selectedVideoDevice,
+            width: { exact: parseInt(resolution.split('x')[0]) },
+            height: { exact: parseInt(resolution.split('x')[1]) },
+          },
+          audio: false,
+        };
+        try {
+          const stream = await navigator.mediaDevices.getUserMedia(constraints);
+          setVideoPreviewStream(stream);
+          if (videoPreviewRef.current) {
+            videoPreviewRef.current.srcObject = stream;
+          }
+        } catch (error) {
+          console.error('Error accessing camera for preview:', error);
+        }
+      }
+    };
 
-    // Cleanup on unmount
+    getPreviewStream();
+
     return () => {
       if (videoPreviewStream) {
         videoPreviewStream.getTracks().forEach((track) => track.stop());
       }
     };
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [selectedVideoDevice, resolution]);
+  }, [selectedVideoDevice, resolution, isCameraRecording]);
 
   const handleStart = () => {
     if (videoPreviewStream) {
@@ -133,14 +119,6 @@ const RecordingModal: React.FC<RecordingModalProps> = ({ onClose, onStart }) => 
       audioDeviceId: selectedAudioDevice,
       resolution,
     });
-  };
-
-  const handleVideoDeviceChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
-    setSelectedVideoDevice(e.target.value);
-  };
-
-  const handleResolutionChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
-    setResolution(e.target.value);
   };
 
   return (
@@ -171,7 +149,7 @@ const RecordingModal: React.FC<RecordingModalProps> = ({ onClose, onStart }) => 
               <label className="block">Video Device:</label>
               <select
                 value={selectedVideoDevice}
-                onChange={handleVideoDeviceChange}
+                onChange={(e) => setSelectedVideoDevice(e.target.value)}
                 className="w-full border p-2 bg-gray-700 text-white rounded"
               >
                 {videoDevices.map((device) => (
@@ -185,7 +163,7 @@ const RecordingModal: React.FC<RecordingModalProps> = ({ onClose, onStart }) => 
               <label className="block">Resolution:</label>
               <select
                 value={resolution}
-                onChange={handleResolutionChange}
+                onChange={(e) => setResolution(e.target.value)}
                 className="w-full border p-2 bg-gray-700 text-white rounded"
               >
                 <option value="1920x1080">1920x1080 (Landscape)</option>
@@ -197,20 +175,10 @@ const RecordingModal: React.FC<RecordingModalProps> = ({ onClose, onStart }) => 
                 ref={videoPreviewRef}
                 autoPlay
                 muted
-                className="bg-black object-contain"
+                className="w-full h-64 bg-black"
               ></video>
             </div>
           </>
-        )}
-        {!isCameraRecording && (
-          <div className="mt-4">
-            <video
-              ref={videoPreviewRef}
-              autoPlay
-              muted
-              className="w-full h-64 bg-black object-contain"
-            ></video>
-          </div>
         )}
         <div>
           <label className="block">Audio Device:</label>
