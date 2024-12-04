@@ -3,9 +3,20 @@ import React, { useState, useRef, useEffect } from 'react';
 interface TeleprompterProps {
   onStartRecording: () => void;
   isRecording: boolean;
+  isCameraRecording: boolean;
+  videoRef: React.RefObject<HTMLVideoElement>;
+  startScrolling: boolean;
+  setStartScrolling: React.Dispatch<React.SetStateAction<boolean>>;
 }
 
-const Teleprompter: React.FC<TeleprompterProps> = ({ onStartRecording, isRecording }) => {
+const Teleprompter: React.FC<TeleprompterProps> = ({
+  onStartRecording,
+  isRecording,
+  isCameraRecording,
+  videoRef,
+  startScrolling,
+  setStartScrolling,
+}) => {
   const [fontSize, setFontSize] = useState(24);
   const [scrollSpeed, setScrollSpeed] = useState(2);
   const [isScrolling, setIsScrolling] = useState(false);
@@ -14,25 +25,38 @@ const Teleprompter: React.FC<TeleprompterProps> = ({ onStartRecording, isRecordi
   const [textContent, setTextContent] = useState(`Your teleprompter text goes here...`);
 
   useEffect(() => {
-    if (isRecording) {
-      startScrolling();
-    } else if (isScrolling) {
-      stopScrolling();
+    if (startScrolling) {
+      // Reset scroll position
+      if (textRef.current) {
+        textRef.current.scrollTop = 0;
+      }
+      startScrollingText();
     }
-    // Cleanup on unmount
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [startScrolling]);
+
+  useEffect(() => {
     return () => {
       if (scrollIntervalId !== null) {
         clearInterval(scrollIntervalId);
       }
     };
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [isRecording]);
+  }, [scrollIntervalId]);
 
-  const startScrolling = () => {
+  const startScrollingText = () => {
     setIsScrolling(true);
     const id = window.setInterval(() => {
       if (textRef.current) {
         textRef.current.scrollTop += scrollSpeed;
+        // Check if reached the bottom
+        if (
+          textRef.current.scrollTop + textRef.current.clientHeight >=
+          textRef.current.scrollHeight
+        ) {
+          clearInterval(id);
+          setIsScrolling(false);
+          setStartScrolling(false);
+        }
       }
     }, 50);
     setScrollIntervalId(id);
@@ -50,12 +74,29 @@ const Teleprompter: React.FC<TeleprompterProps> = ({ onStartRecording, isRecordi
     if (isScrolling) {
       stopScrolling();
     } else {
-      startScrolling();
+      // Reset scroll position
+      if (textRef.current) {
+        textRef.current.scrollTop = 0;
+      }
+      startScrollingText();
     }
   };
 
   return (
     <div className="flex flex-col items-center p-4 space-y-4 bg-gray-800 text-white rounded-lg">
+      <div
+        ref={textRef}
+        className="w-full h-64 overflow-hidden border p-4 bg-gray-700 rounded"
+        style={{ fontSize: `${fontSize}px` }}
+      >
+        {textContent}
+      </div>
+      <textarea
+        className="w-full h-32 p-2 bg-gray-700 text-white rounded border border-gray-600"
+        value={textContent}
+        onChange={(e) => setTextContent(e.target.value)}
+        placeholder="Enter your text here..."
+      ></textarea>
       <div className="flex space-x-4">
         <label className="flex items-center space-x-2">
           <span>Font Size:</span>
@@ -79,19 +120,6 @@ const Teleprompter: React.FC<TeleprompterProps> = ({ onStartRecording, isRecordi
           />
           <span>{scrollSpeed}</span>
         </label>
-      </div>
-      <textarea
-        className="w-full h-32 p-2 bg-gray-700 text-white rounded border border-gray-600"
-        value={textContent}
-        onChange={(e) => setTextContent(e.target.value)}
-        placeholder="Enter your text here..."
-      ></textarea>
-      <div
-        ref={textRef}
-        className="w-full h-64 overflow-hidden border p-4 bg-gray-700 rounded"
-        style={{ fontSize: `${fontSize}px` }}
-      >
-        {textContent}
       </div>
       <div className="flex space-x-4">
         {!isRecording && (
