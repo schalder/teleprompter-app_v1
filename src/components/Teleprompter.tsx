@@ -18,7 +18,7 @@ const Teleprompter: React.FC<TeleprompterProps> = ({
   setStartScrolling,
 }) => {
   const [fontSize, setFontSize] = useState(24);
-  const [scrollSpeed, setScrollSpeed] = useState(8);
+  const [scrollSpeed, setScrollSpeed] = useState(10);
   const [isScrolling, setIsScrolling] = useState(false);
   const textRef = useRef<HTMLDivElement>(null);
   const [scrollIntervalId, setScrollIntervalId] = useState<number | null>(null);
@@ -47,7 +47,7 @@ const Teleprompter: React.FC<TeleprompterProps> = ({
     setIsScrolling(true);
     const id = window.setInterval(() => {
       if (textRef.current) {
-        textRef.current.scrollTop += scrollSpeed;
+        textRef.current.scrollTop += scrollSpeed / 10;
         // Check if reached the bottom
         if (
           textRef.current.scrollTop + textRef.current.clientHeight >=
@@ -95,7 +95,7 @@ const Teleprompter: React.FC<TeleprompterProps> = ({
     <div className="flex flex-col items-center p-4 space-y-4 bg-gray-800 text-white rounded-lg max-w-full">
       <div
         ref={textRef}
-        className="w-full h-64 overflow-hidden border p-4 bg-gray-700 rounded"
+        className="w-full h-96 overflow-hidden p-4 bg-gray-700 rounded"
         style={{ fontSize: `${fontSize}px` }}
       >
         {textContent}
