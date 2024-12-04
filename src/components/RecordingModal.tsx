@@ -104,7 +104,37 @@ const RecordingModal: React.FC<RecordingModalProps> = ({ onClose, onStart }) => 
         videoPreviewStream.getTracks().forEach((track) => track.stop());
       }
     };
-  }, [selectedVideoDevice, resolution, isCameraRecording]);
+  }, [selectedVideoDevice, resolution]);
+
+  useEffect(() => {
+    // Update preview when video device or resolution changes
+    if (isCameraRecording) {
+      if (videoPreviewStream) {
+        videoPreviewStream.getTracks().forEach((track) => track.stop());
+      }
+      const getPreviewStream = async () => {
+        const constraints: MediaStreamConstraints = {
+          video: {
+            deviceId: selectedVideoDevice,
+            width: { exact: parseInt(resolution.split('x')[0]) },
+            height: { exact: parseInt(resolution.split('x')[1]) },
+          },
+          audio: false,
+        };
+        try {
+          const stream = await navigator.mediaDevices.getUserMedia(constraints);
+          setVideoPreviewStream(stream);
+          if (videoPreviewRef.current) {
+            videoPreviewRef.current.srcObject = stream;
+          }
+        } catch (error) {
+          console.error('Error updating camera preview:', error);
+        }
+      };
+      getPreviewStream();
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [selectedVideoDevice, resolution]);
 
   const handleStart = () => {
     if (videoPreviewStream) {
@@ -179,6 +209,16 @@ const RecordingModal: React.FC<RecordingModalProps> = ({ onClose, onStart }) => 
               ></video>
             </div>
           </>
+        )}
+        {!isCameraRecording && (
+          <div className="mt-4">
+            <video
+              ref={videoPreviewRef}
+              autoPlay
+              muted
+              className="w-full h-64 bg-black"
+            ></video>
+          </div>
         )}
         <div>
           <label className="block">Audio Device:</label>
