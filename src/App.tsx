@@ -15,6 +15,7 @@ const App: React.FC = () => {
   const [isCameraRecording, setIsCameraRecording] = useState(true);
   const [startScrolling, setStartScrolling] = useState(false);
   const [selectedResolution, setSelectedResolution] = useState('1920x1080');
+  const [selectedAspectRatio, setSelectedAspectRatio] = useState('16:9');
 
   const handleStartRecording = () => {
     setShowModal(true);
@@ -28,6 +29,7 @@ const App: React.FC = () => {
     setShowModal(false);
     setIsCameraRecording(options.isCameraRecording);
     setSelectedResolution(options.resolution);
+    setSelectedAspectRatio(options.aspectRatio);
 
     try {
       let stream: MediaStream;
@@ -37,17 +39,13 @@ const App: React.FC = () => {
         const aspectRatio = width / height;
         const constraints: MediaStreamConstraints = {
           video: {
-            deviceId: options.videoDeviceId
-              ? { exact: options.videoDeviceId }
-              : undefined,
-            width: { exact: width },
-            height: { exact: height },
-            aspectRatio: { exact: aspectRatio },
-            frameRate: { ideal: 30 },
+            deviceId: options.videoDeviceId ? { exact: options.videoDeviceId } : undefined,
+            width: { ideal: width, min: 640, max: width },
+            height: { ideal: height, min: 480, max: height },
+            aspectRatio: { ideal: aspectRatio },
+            frameRate: { ideal: 30, max: 30 },
           },
-          audio: options.audioDeviceId
-            ? { deviceId: { exact: options.audioDeviceId } }
-            : true,
+          audio: options.audioDeviceId ? { deviceId: { exact: options.audioDeviceId } } : true,
         };
         stream = await navigator.mediaDevices.getUserMedia(constraints);
       } else {
@@ -144,7 +142,7 @@ const App: React.FC = () => {
                       style={{
                         width: '150px',
                         height: '150px',
-                        aspectRatio: selectedResolution.replace('x', '/'),
+                        aspectRatio: selectedAspectRatio,
                       }}
                     >
                       <video
