@@ -7,6 +7,7 @@ const App: React.FC = () => {
   const [showModal, setShowModal] = useState(false);
   const [isRecording, setIsRecording] = useState(false);
   const [videoUrl, setVideoUrl] = useState<string>('');
+  const [videoMimeType, setVideoMimeType] = useState<string>('');
   const videoRef = useRef<HTMLVideoElement>(null);
   const mediaRecorderRef = useRef<MediaRecorder | null>(null);
   const chunks: BlobPart[] = [];
@@ -32,11 +33,12 @@ const App: React.FC = () => {
       if (options.isCameraRecording) {
         const constraints: MediaStreamConstraints = {
           video: {
-            deviceId: { exact: options.videoDeviceId },
-            width: { exact: parseInt(options.resolution.split('x')[0]) },
-            height: { exact: parseInt(options.resolution.split('x')[1]) },
+            deviceId: options.videoDeviceId,
+            width: { ideal: parseInt(options.resolution.split('x')[0]) },
+            height: { ideal: parseInt(options.resolution.split('x')[1]) },
+            frameRate: { ideal: 30 },
           },
-          audio: { deviceId: { exact: options.audioDeviceId } },
+          audio: options.audioDeviceId ? { deviceId: options.audioDeviceId } : true,
         };
         stream = await navigator.mediaDevices.getUserMedia(constraints);
       } else {
@@ -47,12 +49,25 @@ const App: React.FC = () => {
         videoRef.current.srcObject = stream;
       }
 
-      mediaRecorderRef.current = new MediaRecorder(stream);
+      // Determine the best available MIME type
+      let optionsForRecorder = { mimeType: 'video/webm;codecs=vp8,opus' };
+      if (!MediaRecorder.isTypeSupported(optionsForRecorder.mimeType)) {
+        optionsForRecorder = { mimeType: 'video/webm;codecs=vp8' };
+        if (!MediaRecorder.isTypeSupported(optionsForRecorder.mimeType)) {
+          optionsForRecorder = { mimeType: 'video/webm' };
+          if (!MediaRecorder.isTypeSupported(optionsForRecorder.mimeType)) {
+            optionsForRecorder = { mimeType: '' };
+          }
+        }
+      }
+      mediaRecorderRef.current = new MediaRecorder(stream, optionsForRecorder);
+      setVideoMimeType(mediaRecorderRef.current.mimeType);
+
       mediaRecorderRef.current.ondataavailable = (e) => {
         chunks.push(e.data);
       };
       mediaRecorderRef.current.onstop = () => {
-        const blob = new Blob(chunks, { type: 'video/mp4' });
+        const blob = new Blob(chunks, { type: mediaRecorderRef.current?.mimeType });
         const url = URL.createObjectURL(blob);
         setVideoUrl(url);
       };
@@ -64,6 +79,7 @@ const App: React.FC = () => {
       setShowTeleprompter(true);
     } catch (err) {
       console.error('Error accessing media devices.', err);
+      alert('Error accessing media devices. Please check your camera and microphone permissions.');
     }
   };
 
@@ -138,7 +154,11 @@ const App: React.FC = () => {
             )}
           </>
         ) : (
-          <VideoPreview videoUrl={videoUrl} onRecordAgain={handleRecordAgain} />
+          <VideoPreview
+            videoUrl={videoUrl}
+            onRecordAgain={handleRecordAgain}
+            mimeType={videoMimeType}
+          />
         )}
       </div>
     </div>
