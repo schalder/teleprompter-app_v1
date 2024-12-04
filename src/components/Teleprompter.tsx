@@ -17,8 +17,8 @@ const Teleprompter: React.FC<TeleprompterProps> = ({
   startScrolling,
   setStartScrolling,
 }) => {
-  const [fontSize, setFontSize] = useState(24);
-  const [scrollSpeed, setScrollSpeed] = useState(10);
+  const [fontSize, setFontSize] = useState(32);
+  const [scrollSpeed, setScrollSpeed] = useState(9);
   const [isScrolling, setIsScrolling] = useState(false);
   const textRef = useRef<HTMLDivElement>(null);
   const [scrollIntervalId, setScrollIntervalId] = useState<number | null>(null);
