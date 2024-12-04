@@ -95,9 +95,9 @@ const RecordingModal: React.FC<RecordingModalProps> = ({
       const constraints: MediaStreamConstraints = {
         video: {
           deviceId: { exact: selectedVideoDevice },
-          width: { ideal: width },
-          height: { ideal: height },
-          aspectRatio: { ideal: aspectRatio },
+          width: { exact: width },
+          height: { exact: height },
+          aspectRatio: { exact: aspectRatio },
           frameRate: { ideal: 30 },
         },
         audio: false,
@@ -113,11 +113,14 @@ const RecordingModal: React.FC<RecordingModalProps> = ({
           videoPreviewRef.current.srcObject = stream;
           // Adjust video element styling
           videoPreviewRef.current.style.objectFit = 'cover';
-          videoPreviewRef.current.style.aspectRatio = `${width}/${height}`;
+          videoPreviewRef.current.style.width = '100%';
+          videoPreviewRef.current.style.height = '100%';
         }
       } catch (error) {
         console.error('Error updating camera preview:', error);
-        alert('Selected camera or resolution is not supported.');
+        alert(
+          'Selected camera or resolution is not supported. Your camera may not support the selected resolution and aspect ratio.'
+        );
       }
     }
   };
@@ -175,7 +178,8 @@ const RecordingModal: React.FC<RecordingModalProps> = ({
         <div className="flex space-x-4">
           <label className="flex items-center space-x-2">
             <input
-              type="checkbox"
+              type="radio"
+              name="recordingType"
               checked={isCameraRecording}
               onChange={() => setIsCameraRecording(true)}
             />
@@ -183,7 +187,8 @@ const RecordingModal: React.FC<RecordingModalProps> = ({
           </label>
           <label className="flex items-center space-x-2">
             <input
-              type="checkbox"
+              type="radio"
+              name="recordingType"
               checked={!isCameraRecording}
               onChange={() => setIsCameraRecording(false)}
             />
@@ -219,7 +224,7 @@ const RecordingModal: React.FC<RecordingModalProps> = ({
             </div>
             <div className="mt-4">
               <div
-                className="w-full h-64 bg-black relative overflow-hidden"
+                className="w-full bg-black relative overflow-hidden"
                 style={{ aspectRatio: `${resolution.replace('x', '/')}` }}
               >
                 <video
