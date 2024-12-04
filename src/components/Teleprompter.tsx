@@ -95,7 +95,7 @@ const Teleprompter: React.FC<TeleprompterProps> = ({
     <div className="flex flex-col items-center p-4 space-y-4 bg-gray-800 text-white rounded-lg max-w-full">
       <div
         ref={textRef}
-        className="w-full h-96 overflow-hidden p-4 bg-gray-700 rounded"
+        className="w-full h-96 overflow-hidden p-4 bg-gray-800 rounded"
         style={{ fontSize: `${fontSize}px` }}
       >
         {textContent}
