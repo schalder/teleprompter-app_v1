@@ -32,18 +32,27 @@ const App: React.FC = () => {
 
       if (options.isCameraRecording) {
         const [width, height] = options.resolution.split('x').map(Number);
+        const aspectRatio = width / height;
         const constraints: MediaStreamConstraints = {
           video: {
-            deviceId: options.videoDeviceId ? { ideal: options.videoDeviceId } : undefined,
-            width: { ideal: width },
-            height: { ideal: height },
+            deviceId: options.videoDeviceId
+              ? { exact: options.videoDeviceId }
+              : undefined,
+            width: { exact: width },
+            height: { exact: height },
+            aspectRatio: { exact: aspectRatio },
             frameRate: { ideal: 30 },
           },
-          audio: options.audioDeviceId ? { deviceId: { ideal: options.audioDeviceId } } : true,
+          audio: options.audioDeviceId
+            ? { deviceId: { exact: options.audioDeviceId } }
+            : true,
         };
         stream = await navigator.mediaDevices.getUserMedia(constraints);
       } else {
-        stream = await navigator.mediaDevices.getDisplayMedia({ video: true, audio: true });
+        stream = await navigator.mediaDevices.getDisplayMedia({
+          video: true,
+          audio: true,
+        });
       }
 
       if (videoRef.current) {
@@ -68,7 +77,9 @@ const App: React.FC = () => {
         chunks.push(e.data);
       };
       mediaRecorderRef.current.onstop = () => {
-        const blob = new Blob(chunks, { type: mediaRecorderRef.current?.mimeType });
+        const blob = new Blob(chunks, {
+          type: mediaRecorderRef.current?.mimeType,
+        });
         const url = URL.createObjectURL(blob);
         setVideoUrl(url);
       };
@@ -80,7 +91,10 @@ const App: React.FC = () => {
       setShowTeleprompter(true);
     } catch (err) {
       console.error('Error accessing media devices.', err);
-      alert('Error accessing media devices. Please check your camera and microphone permissions.');
+      alert(
+        'Error accessing media devices. Please check your camera and ' +
+          'microphone permissions.'
+      );
     }
   };
 
@@ -105,7 +119,9 @@ const App: React.FC = () => {
 
   return (
     <div className="min-h-screen bg-gray-900 text-white flex flex-col items-center">
-      <h1 className="text-3xl font-bold mt-6">Teleprompter For Digital Creators</h1>
+      <h1 className="text-3xl font-bold mt-6">
+        Teleprompter For Digital Creators
+      </h1>
       <div className="w-full max-w-[900px] p-4">
         {!videoUrl ? (
           <>
