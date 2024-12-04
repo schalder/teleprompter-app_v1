@@ -91,15 +91,12 @@ const RecordingModal: React.FC<RecordingModalProps> = ({
 
   const updatePreviewStream = async () => {
     if (selectedVideoDevice && isCameraRecording) {
-      const [width, height] = resolution.split('x').map(Number);
-      const aspectRatioValue = width / height;
       const constraints: MediaStreamConstraints = {
         video: {
           deviceId: { exact: selectedVideoDevice },
-          width: { ideal: width, min: 640, max: width },
-          height: { ideal: height, min: 480, max: height },
-          aspectRatio: { ideal: aspectRatioValue },
-          frameRate: { ideal: 30, max: 30 },
+          width: { ideal: 1920 },
+          height: { ideal: 1080 },
+          frameRate: { ideal: 30 },
         },
         audio: false,
       };
@@ -120,7 +117,7 @@ const RecordingModal: React.FC<RecordingModalProps> = ({
       } catch (error) {
         console.error('Error updating camera preview:', error);
         alert(
-          'Selected camera or resolution is not supported. Your camera may not support the selected resolution and aspect ratio.'
+          'Selected camera is not supported or not accessible. Please check permissions.'
         );
       }
     }
@@ -136,7 +133,7 @@ const RecordingModal: React.FC<RecordingModalProps> = ({
       }
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [selectedVideoDevice, resolution]);
+  }, [selectedVideoDevice]);
 
   const handleStart = () => {
     if (videoPreviewStream) {
