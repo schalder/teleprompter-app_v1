@@ -47,8 +47,7 @@ const RecordingModal: React.FC<RecordingModalProps> = ({
       } catch (error) {
         console.error('Error accessing media devices.', error);
         alert(
-          'Error accessing media devices. Please check your camera and ' +
-            'microphone permissions.'
+          'Error accessing media devices. Please check your camera and microphone permissions.'
         );
       }
     };
@@ -96,9 +95,9 @@ const RecordingModal: React.FC<RecordingModalProps> = ({
       const constraints: MediaStreamConstraints = {
         video: {
           deviceId: { exact: selectedVideoDevice },
-          width: { exact: width },
-          height: { exact: height },
-          aspectRatio: { exact: aspectRatio },
+          width: { ideal: width, min: 640, max: 1920 },
+          height: { ideal: height, min: 480, max: 1080 },
+          aspectRatio: { ideal: aspectRatio },
           frameRate: { ideal: 30 },
         },
         audio: false,
@@ -115,7 +114,9 @@ const RecordingModal: React.FC<RecordingModalProps> = ({
           // Adjust video element styling
           videoPreviewRef.current.style.width = '100%';
           videoPreviewRef.current.style.height = 'auto';
-          videoPreviewRef.current.style.objectFit = 'cover';
+          videoPreviewRef.current.style.objectFit = 'contain';
+          // Adjust aspect ratio using CSS
+          videoPreviewRef.current.parentElement!.style.aspectRatio = `${width} / ${height}`;
         }
       } catch (error) {
         console.error('Error updating camera preview:', error);
@@ -220,7 +221,7 @@ const RecordingModal: React.FC<RecordingModalProps> = ({
               </select>
             </div>
             <div className="mt-4">
-              <div className="w-full h-64 bg-black relative">
+              <div className="w-full h-auto bg-black relative">
                 <video
                   ref={videoPreviewRef}
                   autoPlay
