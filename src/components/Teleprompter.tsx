@@ -56,6 +56,8 @@ const Teleprompter: React.FC<TeleprompterProps> = ({
           clearInterval(id);
           setIsScrolling(false);
           setStartScrolling(false);
+          // Reset scroll position to top
+          textRef.current.scrollTop = 0;
         }
       }
     }, 50);
@@ -70,20 +72,27 @@ const Teleprompter: React.FC<TeleprompterProps> = ({
     }
   };
 
-  const toggleScrolling = () => {
+  const handlePreviewScroll = () => {
+    // Reset scroll position
+    if (textRef.current) {
+      textRef.current.scrollTop = 0;
+    }
+    if (scrollIntervalId !== null) {
+      clearInterval(scrollIntervalId);
+    }
+    startScrollingText();
+  };
+
+  const handlePlayPause = () => {
     if (isScrolling) {
       stopScrolling();
     } else {
-      // Reset scroll position
-      if (textRef.current) {
-        textRef.current.scrollTop = 0;
-      }
       startScrollingText();
     }
   };
 
   return (
-    <div className="flex flex-col items-center p-4 space-y-4 bg-gray-800 text-white rounded-lg">
+    <div className="flex flex-col items-center p-4 space-y-4 bg-gray-800 text-white rounded-lg max-w-full">
       <div
         ref={textRef}
         className="w-full h-64 overflow-hidden border p-4 bg-gray-700 rounded"
@@ -97,7 +106,7 @@ const Teleprompter: React.FC<TeleprompterProps> = ({
         onChange={(e) => setTextContent(e.target.value)}
         placeholder="Enter your text here..."
       ></textarea>
-      <div className="flex space-x-4">
+      <div className="flex flex-wrap justify-center space-x-4">
         <label className="flex items-center space-x-2">
           <span>Font Size:</span>
           <input
@@ -121,18 +130,34 @@ const Teleprompter: React.FC<TeleprompterProps> = ({
           <span>{scrollSpeed}</span>
         </label>
       </div>
-      <div className="flex space-x-4">
+      <div className="flex flex-wrap justify-center space-x-4">
         {!isRecording && (
+          <>
+            <button
+              onClick={handlePreviewScroll}
+              className="px-4 py-2 bg-blue-500 text-white rounded"
+            >
+              Preview Scroll
+            </button>
+            <button
+              onClick={handlePlayPause}
+              className="px-4 py-2 bg-green-500 text-white rounded"
+            >
+              {isScrolling ? 'Pause' : 'Play'}
+            </button>
+          </>
+        )}
+        {isRecording && (
           <button
-            onClick={toggleScrolling}
-            className="px-4 py-2 bg-blue-500 text-white rounded"
+            onClick={handlePlayPause}
+            className="px-4 py-2 bg-green-500 text-white rounded"
           >
-            {isScrolling ? 'Pause' : 'Preview Scroll'}
+            {isScrolling ? 'Pause' : 'Play'}
           </button>
         )}
         <button
           onClick={onStartRecording}
-          className="px-4 py-2 bg-green-500 text-white rounded"
+          className="px-4 py-2 bg-purple-500 text-white rounded"
         >
           Start Recording
         </button>
