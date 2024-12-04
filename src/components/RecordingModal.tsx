@@ -5,14 +5,19 @@ interface RecordingModalProps {
   onStart: (options: any) => void;
 }
 
-const RecordingModal: React.FC<RecordingModalProps> = ({ onClose, onStart }) => {
+const RecordingModal: React.FC<RecordingModalProps> = ({
+  onClose,
+  onStart,
+}) => {
   const [isCameraRecording, setIsCameraRecording] = useState(true);
   const [videoDevices, setVideoDevices] = useState<MediaDeviceInfo[]>([]);
   const [audioDevices, setAudioDevices] = useState<MediaDeviceInfo[]>([]);
   const [selectedVideoDevice, setSelectedVideoDevice] = useState<string>('');
   const [selectedAudioDevice, setSelectedAudioDevice] = useState<string>('');
   const [resolution, setResolution] = useState('1920x1080');
-  const [videoPreviewStream, setVideoPreviewStream] = useState<MediaStream | null>(null);
+  const [videoPreviewStream, setVideoPreviewStream] = useState<MediaStream | null>(
+    null
+  );
   const videoPreviewRef = React.useRef<HTMLVideoElement>(null);
   const [screenStream, setScreenStream] = useState<MediaStream | null>(null);
 
@@ -22,8 +27,12 @@ const RecordingModal: React.FC<RecordingModalProps> = ({ onClose, onStart }) => 
         await navigator.mediaDevices.getUserMedia({ video: true, audio: true });
 
         const devices = await navigator.mediaDevices.enumerateDevices();
-        const videoInputs = devices.filter((device) => device.kind === 'videoinput');
-        const audioInputs = devices.filter((device) => device.kind === 'audioinput');
+        const videoInputs = devices.filter(
+          (device) => device.kind === 'videoinput'
+        );
+        const audioInputs = devices.filter(
+          (device) => device.kind === 'audioinput'
+        );
 
         setVideoDevices(videoInputs);
         setAudioDevices(audioInputs);
@@ -37,7 +46,10 @@ const RecordingModal: React.FC<RecordingModalProps> = ({ onClose, onStart }) => 
         }
       } catch (error) {
         console.error('Error accessing media devices.', error);
-        alert('Error accessing media devices. Please check your camera and microphone permissions.');
+        alert(
+          'Error accessing media devices. Please check your camera and ' +
+            'microphone permissions.'
+        );
       }
     };
 
@@ -46,7 +58,9 @@ const RecordingModal: React.FC<RecordingModalProps> = ({ onClose, onStart }) => 
 
   const handleScreenRecordingSelection = async () => {
     try {
-      const stream = await navigator.mediaDevices.getDisplayMedia({ video: true });
+      const stream = await navigator.mediaDevices.getDisplayMedia({
+        video: true,
+      });
       setScreenStream(stream);
       if (videoPreviewRef.current) {
         videoPreviewRef.current.srcObject = stream;
@@ -78,11 +92,13 @@ const RecordingModal: React.FC<RecordingModalProps> = ({ onClose, onStart }) => 
   const updatePreviewStream = async () => {
     if (selectedVideoDevice && isCameraRecording) {
       const [width, height] = resolution.split('x').map(Number);
+      const aspectRatio = width / height;
       const constraints: MediaStreamConstraints = {
         video: {
-          deviceId: selectedVideoDevice ? { ideal: selectedVideoDevice } : undefined,
-          width: { ideal: width },
-          height: { ideal: height },
+          deviceId: { exact: selectedVideoDevice },
+          width: { exact: width },
+          height: { exact: height },
+          aspectRatio: { exact: aspectRatio },
           frameRate: { ideal: 30 },
         },
         audio: false,
@@ -96,10 +112,10 @@ const RecordingModal: React.FC<RecordingModalProps> = ({ onClose, onStart }) => 
         setVideoPreviewStream(stream);
         if (videoPreviewRef.current) {
           videoPreviewRef.current.srcObject = stream;
-          // Adjust video element styling to match aspect ratio
+          // Adjust video element styling
           videoPreviewRef.current.style.width = '100%';
           videoPreviewRef.current.style.height = 'auto';
-          videoPreviewRef.current.style.aspectRatio = `${width} / ${height}`;
+          videoPreviewRef.current.style.objectFit = 'cover';
         }
       } catch (error) {
         console.error('Error updating camera preview:', error);
@@ -135,8 +151,19 @@ const RecordingModal: React.FC<RecordingModalProps> = ({ onClose, onStart }) => 
     });
   };
 
-  const handleVideoDeviceChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
+  const handleVideoDeviceChange = async (
+    e: React.ChangeEvent<HTMLSelectElement>
+  ) => {
     setSelectedVideoDevice(e.target.value);
+    // Request permission for the new device
+    try {
+      await navigator.mediaDevices.getUserMedia({
+        video: { deviceId: { exact: e.target.value } },
+      });
+    } catch (error) {
+      console.error('Error accessing the selected camera.', error);
+      alert('Permission denied for the selected camera.');
+    }
   };
 
   const handleResolutionChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
@@ -193,12 +220,14 @@ const RecordingModal: React.FC<RecordingModalProps> = ({ onClose, onStart }) => 
               </select>
             </div>
             <div className="mt-4">
-              <video
-                ref={videoPreviewRef}
-                autoPlay
-                muted
-                className="bg-black object-contain"
-              ></video>
+              <div className="w-full h-64 bg-black relative">
+                <video
+                  ref={videoPreviewRef}
+                  autoPlay
+                  muted
+                  className="absolute inset-0 w-full h-full object-contain"
+                ></video>
+              </div>
             </div>
           </>
         )}
