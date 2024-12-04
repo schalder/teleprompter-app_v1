@@ -31,14 +31,15 @@ const App: React.FC = () => {
       let stream: MediaStream;
 
       if (options.isCameraRecording) {
+        const [width, height] = options.resolution.split('x').map(Number);
         const constraints: MediaStreamConstraints = {
           video: {
-            deviceId: { exact: options.videoDeviceId },
-            width: { min: 640, ideal: parseInt(options.resolution.split('x')[0]), max: 1920 },
-            height: { min: 480, ideal: parseInt(options.resolution.split('x')[1]), max: 1080 },
+            deviceId: options.videoDeviceId ? { ideal: options.videoDeviceId } : undefined,
+            width: { ideal: width },
+            height: { ideal: height },
             frameRate: { ideal: 30 },
           },
-          audio: options.audioDeviceId ? { deviceId: { exact: options.audioDeviceId } } : true,
+          audio: options.audioDeviceId ? { deviceId: { ideal: options.audioDeviceId } } : true,
         };
         stream = await navigator.mediaDevices.getUserMedia(constraints);
       } else {
