@@ -80,8 +80,8 @@ const RecordingModal: React.FC<RecordingModalProps> = ({ onClose, onStart }) => 
       const constraints: MediaStreamConstraints = {
         video: {
           deviceId: { exact: selectedVideoDevice },
-          width: { min: 640, ideal: parseInt(resolution.split('x')[0]), max: 1920 },
-          height: { min: 480, ideal: parseInt(resolution.split('x')[1]), max: 1080 },
+          width: { ideal: 1920 },
+          height: { ideal: 1080 },
           frameRate: { ideal: 30 },
         },
         audio: false,
