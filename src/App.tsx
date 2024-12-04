@@ -38,8 +38,8 @@ const App: React.FC = () => {
             deviceId: options.videoDeviceId
               ? { exact: options.videoDeviceId }
               : undefined,
-            width: { ideal: width, min: 640, max: 1920 },
-            height: { ideal: height, min: 480, max: 1080 },
+            width: { ideal: width },
+            height: { ideal: height },
             aspectRatio: { ideal: aspectRatio },
             frameRate: { ideal: 30 },
           },
@@ -136,12 +136,13 @@ const App: React.FC = () => {
                 />
                 {isRecording && isCameraRecording && (
                   <>
-                    <div className="absolute bottom-4 right-4 w-32 h-32 md:w-48 md:h-48">
+                    <div className="absolute bottom-4 right-4 w-32 h-32 md:w-48 md:h-48 overflow-hidden">
                       <video
                         ref={videoRef}
                         autoPlay
                         muted
                         className="w-full h-full object-cover rounded"
+                        style={{ aspectRatio: isCameraRecording ? '16/9' : undefined }}
                       />
                     </div>
                     <button
