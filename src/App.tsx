@@ -10,6 +10,7 @@ const App: React.FC = () => {
   const videoRef = useRef<HTMLVideoElement>(null);
   const mediaRecorderRef = useRef<MediaRecorder | null>(null);
   const chunks: BlobPart[] = [];
+  const [showTeleprompter, setShowTeleprompter] = useState(true);
 
   const handleStartRecording = () => {
     setShowModal(true);
@@ -22,21 +23,22 @@ const App: React.FC = () => {
   const handleRecordingStart = async (options: any) => {
     setShowModal(false);
 
-    const constraints: MediaStreamConstraints = {
-      video: options.isCameraRecording
-        ? {
+    try {
+      let stream: MediaStream;
+
+      if (options.isCameraRecording) {
+        const constraints: MediaStreamConstraints = {
+          video: {
             deviceId: options.videoDeviceId,
             width: { exact: parseInt(options.resolution.split('x')[0]) },
             height: { exact: parseInt(options.resolution.split('x')[1]) },
-          }
-        : false,
-      audio: { deviceId: options.audioDeviceId },
-    };
-
-    try {
-      const stream = options.isCameraRecording
-        ? await navigator.mediaDevices.getUserMedia(constraints)
-        : await navigator.mediaDevices.getDisplayMedia({ video: true, audio: true });
+          },
+          audio: { deviceId: options.audioDeviceId },
+        };
+        stream = await navigator.mediaDevices.getUserMedia(constraints);
+      } else {
+        stream = await navigator.mediaDevices.getDisplayMedia({ video: true, audio: true });
+      }
 
       if (videoRef.current) {
         videoRef.current.srcObject = stream;
@@ -53,6 +55,9 @@ const App: React.FC = () => {
       };
       mediaRecorderRef.current.start();
       setIsRecording(true);
+
+      // Navigate to teleprompter screen
+      setShowTeleprompter(true);
     } catch (err) {
       console.error('Error accessing media devices.', err);
     }
@@ -73,34 +78,51 @@ const App: React.FC = () => {
   const handleRecordAgain = () => {
     setVideoUrl('');
     setIsRecording(false);
+    setShowTeleprompter(true);
   };
 
   return (
-    <div className="min-h-screen bg-gray-100">
-      {!videoUrl ? (
-        <>
-          <Teleprompter onStartRecording={handleStartRecording} />
-          {showModal && (
-            <RecordingModal
-              onClose={handleModalClose}
-              onStart={handleRecordingStart}
-            />
-          )}
-          {isRecording && (
-            <div className="fixed inset-0 bg-white flex flex-col items-center p-4">
-              <video ref={videoRef} autoPlay className="w-full max-w-md" />
-              <button
-                onClick={handleStopRecording}
-                className="mt-4 px-4 py-2 bg-red-500 text-white rounded"
-              >
-                Stop Recording
-              </button>
-            </div>
-          )}
-        </>
-      ) : (
-        <VideoPreview videoUrl={videoUrl} onRecordAgain={handleRecordAgain} />
-      )}
+    <div className="min-h-screen bg-gray-900 text-white flex items-center justify-center">
+      <div className="w-full max-w-3xl p-4">
+        {!videoUrl ? (
+          <>
+            {showTeleprompter && (
+              <div className="relative">
+                <Teleprompter
+                  onStartRecording={handleStartRecording}
+                  isRecording={isRecording}
+                />
+                {isRecording && (
+                  <>
+                    <div className="absolute bottom-4 right-4 w-32 h-32 md:w-48 md:h-48">
+                      <video
+                        ref={videoRef}
+                        autoPlay
+                        muted
+                        className="w-full h-full object-cover rounded"
+                      />
+                    </div>
+                    <button
+                      onClick={handleStopRecording}
+                      className="fixed top-4 right-4 px-4 py-2 bg-red-500 text-white rounded"
+                    >
+                      Stop Recording
+                    </button>
+                  </>
+                )}
+              </div>
+            )}
+            {showModal && (
+              <RecordingModal
+                onClose={handleModalClose}
+                onStart={handleRecordingStart}
+              />
+            )}
+          </>
+        ) : (
+          <VideoPreview videoUrl={videoUrl} onRecordAgain={handleRecordAgain} />
+        )}
+      </div>
     </div>
   );
 };
