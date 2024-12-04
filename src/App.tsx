@@ -38,9 +38,9 @@ const App: React.FC = () => {
             deviceId: options.videoDeviceId
               ? { exact: options.videoDeviceId }
               : undefined,
-            width: { exact: width },
-            height: { exact: height },
-            aspectRatio: { exact: aspectRatio },
+            width: { ideal: width, min: 640, max: 1920 },
+            height: { ideal: height, min: 480, max: 1080 },
+            aspectRatio: { ideal: aspectRatio },
             frameRate: { ideal: 30 },
           },
           audio: options.audioDeviceId
@@ -92,8 +92,7 @@ const App: React.FC = () => {
     } catch (err) {
       console.error('Error accessing media devices.', err);
       alert(
-        'Error accessing media devices. Please check your camera and ' +
-          'microphone permissions.'
+        'Error accessing media devices. Please check your camera and microphone permissions.'
       );
     }
   };
