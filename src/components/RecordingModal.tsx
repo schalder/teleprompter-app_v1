@@ -37,6 +37,7 @@ const RecordingModal: React.FC<RecordingModalProps> = ({ onClose, onStart }) => 
         }
       } catch (error) {
         console.error('Error accessing media devices.', error);
+        alert('Error accessing media devices. Please check your camera and microphone permissions.');
       }
     };
 
@@ -78,9 +79,10 @@ const RecordingModal: React.FC<RecordingModalProps> = ({ onClose, onStart }) => 
     if (selectedVideoDevice && isCameraRecording) {
       const constraints: MediaStreamConstraints = {
         video: {
-          deviceId: { exact: selectedVideoDevice },
-          width: { exact: parseInt(resolution.split('x')[0]) },
-          height: { exact: parseInt(resolution.split('x')[1]) },
+          deviceId: selectedVideoDevice,
+          width: { ideal: parseInt(resolution.split('x')[0]) },
+          height: { ideal: parseInt(resolution.split('x')[1]) },
+          frameRate: { ideal: 30 },
         },
         audio: false,
       };
@@ -96,6 +98,7 @@ const RecordingModal: React.FC<RecordingModalProps> = ({ onClose, onStart }) => 
         }
       } catch (error) {
         console.error('Error updating camera preview:', error);
+        alert('Selected camera or resolution is not supported.');
       }
     }
   };
