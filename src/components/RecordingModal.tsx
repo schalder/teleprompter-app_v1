@@ -95,8 +95,8 @@ const RecordingModal: React.FC<RecordingModalProps> = ({
       const constraints: MediaStreamConstraints = {
         video: {
           deviceId: { exact: selectedVideoDevice },
-          width: { ideal: width, min: 640, max: 1920 },
-          height: { ideal: height, min: 480, max: 1080 },
+          width: { ideal: width },
+          height: { ideal: height },
           aspectRatio: { ideal: aspectRatio },
           frameRate: { ideal: 30 },
         },
@@ -112,11 +112,8 @@ const RecordingModal: React.FC<RecordingModalProps> = ({
         if (videoPreviewRef.current) {
           videoPreviewRef.current.srcObject = stream;
           // Adjust video element styling
-          videoPreviewRef.current.style.width = '100%';
-          videoPreviewRef.current.style.height = 'auto';
-          videoPreviewRef.current.style.objectFit = 'contain';
-          // Adjust aspect ratio using CSS
-          videoPreviewRef.current.parentElement!.style.aspectRatio = `${width} / ${height}`;
+          videoPreviewRef.current.style.objectFit = 'cover';
+          videoPreviewRef.current.style.aspectRatio = `${width}/${height}`;
         }
       } catch (error) {
         console.error('Error updating camera preview:', error);
@@ -221,12 +218,15 @@ const RecordingModal: React.FC<RecordingModalProps> = ({
               </select>
             </div>
             <div className="mt-4">
-              <div className="w-full h-auto bg-black relative">
+              <div
+                className="w-full h-64 bg-black relative overflow-hidden"
+                style={{ aspectRatio: `${resolution.replace('x', '/')}` }}
+              >
                 <video
                   ref={videoPreviewRef}
                   autoPlay
                   muted
-                  className="absolute inset-0 w-full h-full object-contain"
+                  className="absolute inset-0 w-full h-full object-cover"
                 ></video>
               </div>
             </div>
