@@ -79,9 +79,9 @@ const RecordingModal: React.FC<RecordingModalProps> = ({ onClose, onStart }) => 
     if (selectedVideoDevice && isCameraRecording) {
       const constraints: MediaStreamConstraints = {
         video: {
-          deviceId: selectedVideoDevice,
-          width: { ideal: parseInt(resolution.split('x')[0]) },
-          height: { ideal: parseInt(resolution.split('x')[1]) },
+          deviceId: { exact: selectedVideoDevice },
+          width: { min: 640, ideal: parseInt(resolution.split('x')[0]), max: 1920 },
+          height: { min: 480, ideal: parseInt(resolution.split('x')[1]), max: 1080 },
           frameRate: { ideal: 30 },
         },
         audio: false,
