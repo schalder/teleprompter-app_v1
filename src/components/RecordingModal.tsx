@@ -77,11 +77,12 @@ const RecordingModal: React.FC<RecordingModalProps> = ({ onClose, onStart }) => 
 
   const updatePreviewStream = async () => {
     if (selectedVideoDevice && isCameraRecording) {
+      const [width, height] = resolution.split('x').map(Number);
       const constraints: MediaStreamConstraints = {
         video: {
-          deviceId: { exact: selectedVideoDevice },
-          width: { min: 640, ideal: parseInt(resolution.split('x')[0]), max: 1920 },
-          height: { min: 480, ideal: parseInt(resolution.split('x')[1]), max: 1080 },
+          deviceId: selectedVideoDevice ? { ideal: selectedVideoDevice } : undefined,
+          width: { ideal: width },
+          height: { ideal: height },
           frameRate: { ideal: 30 },
         },
         audio: false,
@@ -95,6 +96,10 @@ const RecordingModal: React.FC<RecordingModalProps> = ({ onClose, onStart }) => 
         setVideoPreviewStream(stream);
         if (videoPreviewRef.current) {
           videoPreviewRef.current.srcObject = stream;
+          // Adjust video element styling to match aspect ratio
+          videoPreviewRef.current.style.width = '100%';
+          videoPreviewRef.current.style.height = 'auto';
+          videoPreviewRef.current.style.aspectRatio = `${width} / ${height}`;
         }
       } catch (error) {
         console.error('Error updating camera preview:', error);
@@ -192,7 +197,7 @@ const RecordingModal: React.FC<RecordingModalProps> = ({ onClose, onStart }) => 
                 ref={videoPreviewRef}
                 autoPlay
                 muted
-                className="w-full h-64 bg-black object-contain"
+                className="bg-black object-contain"
               ></video>
             </div>
           </>
