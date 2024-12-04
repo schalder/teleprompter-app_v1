@@ -47,7 +47,7 @@ const Teleprompter: React.FC<TeleprompterProps> = ({
     setIsScrolling(true);
     const id = window.setInterval(() => {
       if (textRef.current) {
-        textRef.current.scrollTop += scrollSpeed / 10;
+        textRef.current.scrollTop += scrollSpeed / 9;
         // Check if reached the bottom
         if (
           textRef.current.scrollTop + textRef.current.clientHeight >=
@@ -96,12 +96,15 @@ const Teleprompter: React.FC<TeleprompterProps> = ({
       <div
         ref={textRef}
         className="w-full h-96 overflow-hidden p-4 bg-gray-800 rounded"
-        style={{ fontSize: `${fontSize}px` }}
+        style={{
+          fontSize: `${fontSize}px`,
+          whiteSpace: 'pre-wrap', // Preserve whitespace and line breaks
+        }}
       >
         {textContent}
       </div>
       <textarea
-        className="w-full h-32 p-2 bg-gray-700 text-white rounded border border-gray-600"
+        className="w-full h-32 p-2 bg-gray-800 text-white rounded border border-gray-700"
         value={textContent}
         onChange={(e) => setTextContent(e.target.value)}
         placeholder="Enter your text here..."
@@ -167,3 +170,4 @@ const Teleprompter: React.FC<TeleprompterProps> = ({
 };
 
 export default Teleprompter;
+ 
