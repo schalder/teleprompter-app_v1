@@ -14,6 +14,7 @@ const App: React.FC = () => {
   const [showTeleprompter, setShowTeleprompter] = useState(true);
   const [isCameraRecording, setIsCameraRecording] = useState(true);
   const [startScrolling, setStartScrolling] = useState(false);
+  const [selectedResolution, setSelectedResolution] = useState('1920x1080');
 
   const handleStartRecording = () => {
     setShowModal(true);
@@ -26,6 +27,7 @@ const App: React.FC = () => {
   const handleRecordingStart = async (options: any) => {
     setShowModal(false);
     setIsCameraRecording(options.isCameraRecording);
+    setSelectedResolution(options.resolution);
 
     try {
       let stream: MediaStream;
@@ -38,9 +40,9 @@ const App: React.FC = () => {
             deviceId: options.videoDeviceId
               ? { exact: options.videoDeviceId }
               : undefined,
-            width: { ideal: width },
-            height: { ideal: height },
-            aspectRatio: { ideal: aspectRatio },
+            width: { exact: width },
+            height: { exact: height },
+            aspectRatio: { exact: aspectRatio },
             frameRate: { ideal: 30 },
           },
           audio: options.audioDeviceId
@@ -57,6 +59,7 @@ const App: React.FC = () => {
 
       if (videoRef.current) {
         videoRef.current.srcObject = stream;
+        videoRef.current.play();
       }
 
       // Determine the best available MIME type
@@ -92,7 +95,7 @@ const App: React.FC = () => {
     } catch (err) {
       console.error('Error accessing media devices.', err);
       alert(
-        'Error accessing media devices. Please check your camera and microphone permissions.'
+        'Error accessing media devices. Your camera may not support the selected resolution and aspect ratio.'
       );
     }
   };
@@ -136,13 +139,19 @@ const App: React.FC = () => {
                 />
                 {isRecording && isCameraRecording && (
                   <>
-                    <div className="absolute bottom-4 right-4 w-32 h-32 md:w-48 md:h-48 overflow-hidden">
+                    <div
+                      className="absolute bottom-4 right-4 overflow-hidden bg-black"
+                      style={{
+                        width: '150px',
+                        height: '150px',
+                        aspectRatio: selectedResolution.replace('x', '/'),
+                      }}
+                    >
                       <video
                         ref={videoRef}
                         autoPlay
                         muted
                         className="w-full h-full object-cover rounded"
-                        style={{ aspectRatio: isCameraRecording ? '16/9' : undefined }}
                       />
                     </div>
                     <button
