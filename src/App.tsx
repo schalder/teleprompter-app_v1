@@ -11,8 +11,7 @@ const App: React.FC = () => {
   const videoRef = useRef<HTMLVideoElement>(null);
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const mediaRecorderRef = useRef<MediaRecorder | null>(null);
-  const chunks: BlobPart[] = [];
-  const [showTeleprompter, setShowTeleprompter] = useState(true);
+  const [chunks, setChunks] = useState<BlobPart[]>([]);
   const [isCameraRecording, setIsCameraRecording] = useState(true);
   const [startScrolling, setStartScrolling] = useState(false);
   const [selectedAspectRatio, setSelectedAspectRatio] = useState('16:9');
@@ -149,7 +148,7 @@ const App: React.FC = () => {
         setVideoMimeType(mediaRecorderRef.current.mimeType);
 
         mediaRecorderRef.current.ondataavailable = (e) => {
-          chunks.push(e.data);
+          setChunks((prevChunks) => [...prevChunks, e.data]);
         };
         mediaRecorderRef.current.onstop = () => {
           const blob = new Blob(chunks, {
@@ -157,9 +156,11 @@ const App: React.FC = () => {
           });
           const url = URL.createObjectURL(blob);
           setVideoUrl(url);
-          chunks.length = 0; // Clear chunks
+          setChunks([]); // Clear chunks
         };
         mediaRecorderRef.current.start();
+
+        // **Important:** Update state after starting the recorder
         setIsRecording(true);
         setStartScrolling(true); // Start scrolling from beginning
       }
@@ -172,7 +173,7 @@ const App: React.FC = () => {
   };
 
   const handleStopRecording = () => {
-    if (mediaRecorderRef.current) {
+    if (mediaRecorderRef.current && mediaRecorderRef.current.state !== 'inactive') {
       mediaRecorderRef.current.stop();
     }
     if (videoRef.current && videoRef.current.srcObject) {
@@ -187,7 +188,6 @@ const App: React.FC = () => {
   const handleRecordAgain = () => {
     setVideoUrl('');
     setIsRecording(false);
-    setShowTeleprompter(true);
     setStartScrolling(false); // Reset scrolling
   };
 
@@ -199,46 +199,35 @@ const App: React.FC = () => {
       <div className="w-full max-w-[900px] p-4">
         {!videoUrl ? (
           <>
-            {showTeleprompter && (
-              <div className="relative">
-                <Teleprompter
-                  onStartRecording={handleStartRecording}
-                  isRecording={isRecording}
-                  isCameraRecording={isCameraRecording}
-                  videoRef={videoRef}
-                  startScrolling={startScrolling}
-                  setStartScrolling={setStartScrolling}
-                />
-                {isRecording && isCameraRecording && (
-                  <>
-                    <div
-                      className="absolute bottom-4 right-4 overflow-hidden bg-black rounded"
-                      style={{
-                        width: '150px',
-                        height: '150px',
-                        aspectRatio: selectedAspectRatio.replace(':', '/'),
-                      }}
-                    >
-                      <canvas ref={canvasRef} className="w-full h-full" />
-                    </div>
-                    <button
-                      onClick={handleStopRecording}
-                      className="fixed top-4 right-4 px-4 py-2 bg-red-500 text-white rounded"
-                    >
-                      Stop Recording
-                    </button>
-                  </>
-                )}
-                {isRecording && !isCameraRecording && (
+            <div className="relative">
+              <Teleprompter
+                onStartRecording={handleStartRecording}
+                isRecording={isRecording}
+                videoRef={videoRef}
+                startScrolling={startScrolling}
+                setStartScrolling={setStartScrolling}
+              />
+              {isRecording && (
+                <>
+                  <div
+                    className="absolute bottom-4 right-4 overflow-hidden bg-black rounded"
+                    style={{
+                      width: '150px',
+                      height: '150px',
+                      aspectRatio: selectedAspectRatio.replace(':', '/'),
+                    }}
+                  >
+                    <canvas ref={canvasRef} className="w-full h-full" />
+                  </div>
                   <button
                     onClick={handleStopRecording}
                     className="fixed top-4 right-4 px-4 py-2 bg-red-500 text-white rounded"
                   >
                     Stop Recording
                   </button>
-                )}
-              </div>
-            )}
+                </>
+              )}
+            </div>
             {showModal && (
               <RecordingModal
                 onClose={handleModalClose}
