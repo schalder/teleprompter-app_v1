@@ -5,6 +5,3 @@
 [build.environment]
   NODE_VERSION = "18"
   NPM_FLAGS = "--legacy-peer-deps"
-
-[[plugins]]
-  package = "@netlify/plugin-vite"
