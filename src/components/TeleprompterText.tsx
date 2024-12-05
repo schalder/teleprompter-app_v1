@@ -1,40 +1,21 @@
-import React, { useState } from 'react';
+import React from 'react';
 
-const TeleprompterText = () => {
-  const [text, setText] = useState('Welcome to the teleprompter app!');
-  const [fontSize, setFontSize] = useState(24);
-  const [scrollSpeed, setScrollSpeed] = useState(50);
+interface TeleprompterTextProps {
+  text: string;
+  setText: React.Dispatch<React.SetStateAction<string>>;
+}
 
+const TeleprompterText: React.FC<TeleprompterTextProps> = ({ text, setText }) => {
   return (
-    <div>
+    <div className="mb-4">
+      <label className="block mb-2 font-semibold">Teleprompter Text</label>
       <textarea
-        className="w-full bg-gray-800 text-white p-2 mb-4"
-        rows={10}
+        className="w-full p-3 bg-gray-800 text-white rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+        rows={6}
         value={text}
         onChange={(e) => setText(e.target.value)}
-      />
-      <div className="flex gap-4 mb-4">
-        <div>
-          <label>Font Size:</label>
-          <input
-            type="range"
-            min="16"
-            max="48"
-            value={fontSize}
-            onChange={(e) => setFontSize(Number(e.target.value))}
-          />
-        </div>
-        <div>
-          <label>Scroll Speed:</label>
-          <input
-            type="range"
-            min="10"
-            max="100"
-            value={scrollSpeed}
-            onChange={(e) => setScrollSpeed(Number(e.target.value))}
-          />
-        </div>
-      </div>
+        placeholder="Enter your teleprompter text here..."
+      ></textarea>
     </div>
   );
 };
