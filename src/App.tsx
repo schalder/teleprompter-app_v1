@@ -16,6 +16,7 @@ const App: React.FC = () => {
   const [isCameraRecording, setIsCameraRecording] = useState(true);
   const [startScrolling, setStartScrolling] = useState(false);
   const [selectedAspectRatio, setSelectedAspectRatio] = useState('16:9');
+  const [recordingStream, setRecordingStream] = useState<MediaStream | null>(null);
 
   const handleStartRecording = () => {
     setShowModal(true);
@@ -51,6 +52,8 @@ const App: React.FC = () => {
       } else {
         // Screen recording code...
       }
+
+      setRecordingStream(stream); // Store the stream for later cleanup
 
       if (videoRef.current) {
         videoRef.current.srcObject = stream;
@@ -179,10 +182,9 @@ const App: React.FC = () => {
     if (mediaRecorderRef.current) {
       mediaRecorderRef.current.stop();
     }
-    if (videoRef.current && videoRef.current.srcObject) {
-      const tracks = (videoRef.current.srcObject as MediaStream).getTracks();
-      tracks.forEach((track) => track.stop());
-      videoRef.current.srcObject = null;
+    if (recordingStream) {
+      recordingStream.getTracks().forEach((track) => track.stop());
+      setRecordingStream(null);
     }
     setIsRecording(false);
     setStartScrolling(false);
