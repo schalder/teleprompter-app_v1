@@ -135,11 +135,14 @@ const RecordingModal: React.FC<RecordingModalProps> = ({
   }, [selectedVideoDevice, aspectRatio]);
 
   const handleStart = () => {
+    // Ensure streams are cleaned up before starting
     if (videoPreviewStream) {
       videoPreviewStream.getTracks().forEach((track) => track.stop());
+      setVideoPreviewStream(null);
     }
     if (screenStream) {
       screenStream.getTracks().forEach((track) => track.stop());
+      setScreenStream(null);
     }
     onStart({
       isCameraRecording,
@@ -169,7 +172,7 @@ const RecordingModal: React.FC<RecordingModalProps> = ({
   };
 
   return (
-    <div className="fixed inset-0 bg-black bg-opacity-50 flex justify-center items-center z-50">
+    <div className="fixed inset-0 bg-black bg-opacity-50 flex justify-center items-center z-50 overflow-y-auto">
       <div className="bg-gray-800 text-white p-6 rounded space-y-4 w-full max-w-lg">
         <h2 className="text-xl font-bold">Recording Options</h2>
         <div className="flex space-x-4">
@@ -222,7 +225,10 @@ const RecordingModal: React.FC<RecordingModalProps> = ({
             <div className="mt-4">
               <div
                 className="w-full bg-black relative overflow-hidden"
-                style={{ aspectRatio: aspectRatio.replace(':', '/') }}
+                style={{
+                  aspectRatio: aspectRatio.replace(':', '/'),
+                  maxHeight: '300px',
+                }}
               >
                 <video
                   ref={videoPreviewRef}
