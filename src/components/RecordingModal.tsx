@@ -25,9 +25,11 @@ const RecordingModal: React.FC<RecordingModalProps> = ({
   useEffect(() => {
     const getDevices = async () => {
       try {
+        // Request permission to access the camera and microphone
         await navigator.mediaDevices.getUserMedia({ video: true, audio: true });
 
         const devices = await navigator.mediaDevices.enumerateDevices();
+
         const videoInputs = devices.filter(
           (device) => device.kind === 'videoinput'
         );
@@ -56,44 +58,9 @@ const RecordingModal: React.FC<RecordingModalProps> = ({
     getDevices();
   }, []);
 
-  const handleScreenRecordingSelection = async () => {
-    try {
-      const stream = await navigator.mediaDevices.getDisplayMedia({
-        video: true,
-      });
-      setScreenStream(stream);
-      if (videoPreviewRef.current) {
-        videoPreviewRef.current.srcObject = stream;
-      }
-    } catch (error) {
-      console.error('Error accessing screen for recording:', error);
-    }
-  };
-
-  useEffect(() => {
-    if (!isCameraRecording) {
-      handleScreenRecordingSelection();
-    } else {
-      // Stop screen stream if any
-      if (screenStream) {
-        screenStream.getTracks().forEach((track) => track.stop());
-        setScreenStream(null);
-      }
-    }
-    // Cleanup on unmount
-    return () => {
-      if (screenStream) {
-        screenStream.getTracks().forEach((track) => track.stop());
-      }
-    };
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [isCameraRecording]);
-
   const updatePreviewStream = async () => {
     if (selectedVideoDevice && isCameraRecording) {
-      const [previewWidth, previewHeight] = resolution
-        .split('x')
-        .map(Number);
+      const [previewWidth, previewHeight] = resolution.split('x').map(Number);
       const constraints: MediaStreamConstraints = {
         video: {
           deviceId: { exact: selectedVideoDevice },
@@ -108,19 +75,20 @@ const RecordingModal: React.FC<RecordingModalProps> = ({
         if (videoPreviewStream) {
           videoPreviewStream.getTracks().forEach((track) => track.stop());
         }
+
         const stream = await navigator.mediaDevices.getUserMedia(constraints);
         setVideoPreviewStream(stream);
+
         if (videoPreviewRef.current) {
           videoPreviewRef.current.srcObject = stream;
-          // Adjust video element styling
-          videoPreviewRef.current.style.objectFit = 'cover';
-          videoPreviewRef.current.style.width = '100%';
-          videoPreviewRef.current.style.height = '100%';
+          videoPreviewRef.current.onloadedmetadata = () => {
+            videoPreviewRef.current?.play();
+          };
         }
       } catch (error) {
         console.error('Error updating camera preview:', error);
         alert(
-          'Selected camera is not supported or not accessible. Please check permissions.'
+          'Could not access the selected camera. Please check your camera permissions and try again.'
         );
       }
     }
@@ -129,13 +97,12 @@ const RecordingModal: React.FC<RecordingModalProps> = ({
   useEffect(() => {
     updatePreviewStream();
 
-    // Cleanup on unmount
     return () => {
       if (videoPreviewStream) {
         videoPreviewStream.getTracks().forEach((track) => track.stop());
       }
     };
-    // eslint-disable-next-line react-hooks/exhaustive-deps
+    // Adding resolution to the dependency array to update when it changes
   }, [selectedVideoDevice, resolution]);
 
   const handleStart = () => {
@@ -154,24 +121,15 @@ const RecordingModal: React.FC<RecordingModalProps> = ({
     });
   };
 
-  const handleVideoDeviceChange = async (
-    e: React.ChangeEvent<HTMLSelectElement>
-  ) => {
+  const handleVideoDeviceChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
     setSelectedVideoDevice(e.target.value);
-    // Request permission for the new device
-    try {
-      await navigator.mediaDevices.getUserMedia({
-        video: { deviceId: { exact: e.target.value } },
-      });
-    } catch (error) {
-      console.error('Error accessing the selected camera.', error);
-      alert('Permission denied for the selected camera.');
-    }
+    updatePreviewStream();
   };
 
   const handleResolutionChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
     setResolution(e.target.value);
     setAspectRatio(e.target.value === '1920x1080' ? '16:9' : '9:16');
+    updatePreviewStream();
   };
 
   return (
@@ -234,6 +192,7 @@ const RecordingModal: React.FC<RecordingModalProps> = ({
                   ref={videoPreviewRef}
                   autoPlay
                   muted
+                  playsInline
                   className="absolute inset-0 w-full h-full object-cover"
                 ></video>
               </div>
@@ -246,6 +205,7 @@ const RecordingModal: React.FC<RecordingModalProps> = ({
               ref={videoPreviewRef}
               autoPlay
               muted
+              playsInline
               className="w-full h-64 bg-black object-contain"
             ></video>
           </div>
