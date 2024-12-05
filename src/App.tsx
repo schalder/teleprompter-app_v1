@@ -1,4 +1,4 @@
-import React, { useState, useRef } from 'react';
+import React, { useState, useRef, useEffect } from 'react';
 import Teleprompter from './components/Teleprompter';
 import RecordingModal from './components/RecordingModal';
 import VideoPreview from './components/VideoPreview';
@@ -35,7 +35,9 @@ const App: React.FC = () => {
     try {
       let stream: MediaStream;
 
-      const [width, height] = options.resolution.split('x').map(Number);
+      const [canvasWidth, canvasHeight] = options.resolution
+        .split('x')
+        .map(Number);
 
       if (options.isCameraRecording) {
         const constraints: MediaStreamConstraints = {
@@ -43,8 +45,8 @@ const App: React.FC = () => {
             deviceId: options.videoDeviceId
               ? { exact: options.videoDeviceId }
               : undefined,
-            width: { ideal: width },
-            height: { ideal: height },
+            width: { ideal: canvasWidth },
+            height: { ideal: canvasHeight },
             frameRate: { ideal: 30 },
           },
           audio: options.audioDeviceId
@@ -53,112 +55,99 @@ const App: React.FC = () => {
         };
         stream = await navigator.mediaDevices.getUserMedia(constraints);
       } else {
-        // Screen recording code...
+        stream = await navigator.mediaDevices.getDisplayMedia({
+          video: true,
+          audio: true,
+        });
       }
 
       if (videoRef.current) {
         videoRef.current.srcObject = stream;
-        videoRef.current.onloadedmetadata = () => {
-          videoRef.current?.play();
+        await videoRef.current.play();
 
-          // Set canvas dimensions
-          if (canvasRef.current) {
-            canvasRef.current.width = width;
-            canvasRef.current.height = height;
-          }
+        // Set canvas dimensions
+        if (canvasRef.current) {
+          canvasRef.current.width = canvasWidth;
+          canvasRef.current.height = canvasHeight;
+        }
 
-          // Start drawing video to canvas
-          const drawToCanvas = () => {
-            if (canvasRef.current && videoRef.current) {
-              const ctx = canvasRef.current.getContext('2d');
-              if (ctx) {
-                const videoWidth = videoRef.current.videoWidth;
-                const videoHeight = videoRef.current.videoHeight;
-                const videoAspectRatio = videoWidth / videoHeight;
-                const canvasAspectRatio = width / height;
+        // Start drawing video to canvas
+        const drawToCanvas = () => {
+          if (canvasRef.current && videoRef.current) {
+            const ctx = canvasRef.current.getContext('2d');
+            if (ctx) {
+              const videoWidth = videoRef.current.videoWidth;
+              const videoHeight = videoRef.current.videoHeight;
 
-                let sx = 0,
-                  sy = 0,
-                  sw = videoWidth,
-                  sh = videoHeight;
-                let dx = 0,
-                  dy = 0,
-                  dw = width,
-                  dh = height;
+              // Calculate scaling to maintain aspect ratio
+              const scaleWidth = canvasWidth / videoWidth;
+              const scaleHeight = canvasHeight / videoHeight;
+              const scale = Math.max(scaleWidth, scaleHeight);
 
-                if (videoAspectRatio > canvasAspectRatio) {
-                  // Video is wider than canvas, crop the sides
-                  const newSw = videoHeight * canvasAspectRatio;
-                  sx = (videoWidth - newSw) / 2;
-                  sw = newSw;
-                } else if (videoAspectRatio < canvasAspectRatio) {
-                  // Video is taller than canvas, crop the top and bottom
-                  const newSh = videoWidth / canvasAspectRatio;
-                  sy = (videoHeight - newSh) / 2;
-                  sh = newSh;
-                }
+              const dx = (canvasWidth - videoWidth * scale) / 2;
+              const dy = (canvasHeight - videoHeight * scale) / 2;
 
-                ctx.drawImage(
-                  videoRef.current,
-                  sx,
-                  sy,
-                  sw,
-                  sh,
-                  dx,
-                  dy,
-                  dw,
-                  dh
-                );
-              }
-            }
-            requestAnimationFrame(drawToCanvas);
-          };
-
-          drawToCanvas();
-
-          // Get canvas stream for recording
-          const canvasStream = canvasRef.current?.captureStream(30);
-
-          // Combine canvas stream with audio if available
-          if (stream.getAudioTracks().length > 0 && canvasStream) {
-            const audioTracks = stream.getAudioTracks();
-            audioTracks.forEach((track) => canvasStream?.addTrack(track));
-          }
-
-          // Determine the best available MIME type
-          let optionsForRecorder = { mimeType: 'video/webm;codecs=vp9,opus' };
-          if (!MediaRecorder.isTypeSupported(optionsForRecorder.mimeType)) {
-            optionsForRecorder = { mimeType: 'video/webm;codecs=vp8,opus' };
-            if (!MediaRecorder.isTypeSupported(optionsForRecorder.mimeType)) {
-              optionsForRecorder = { mimeType: 'video/webm' };
-              if (!MediaRecorder.isTypeSupported(optionsForRecorder.mimeType)) {
-                optionsForRecorder = { mimeType: '' };
-              }
+              ctx.clearRect(0, 0, canvasWidth, canvasHeight);
+              ctx.drawImage(
+                videoRef.current,
+                0,
+                0,
+                videoWidth,
+                videoHeight,
+                dx,
+                dy,
+                videoWidth * scale,
+                videoHeight * scale
+              );
             }
           }
-          mediaRecorderRef.current = new MediaRecorder(
-            canvasStream as MediaStream,
-            optionsForRecorder
-          );
-          setVideoMimeType(mediaRecorderRef.current.mimeType);
-
-          mediaRecorderRef.current.ondataavailable = (e) => {
-            chunks.push(e.data);
-          };
-          mediaRecorderRef.current.onstop = () => {
-            const blob = new Blob(chunks, {
-              type: mediaRecorderRef.current?.mimeType,
-            });
-            const url = URL.createObjectURL(blob);
-            setVideoUrl(url);
-          };
-          mediaRecorderRef.current.start();
-          setIsRecording(true);
-          setStartScrolling(true); // Start scrolling from beginning
-
-          // Navigate to teleprompter screen
-          setShowTeleprompter(true);
+          requestAnimationFrame(drawToCanvas);
         };
+
+        drawToCanvas();
+
+        // Get canvas stream for recording
+        const canvasStream = canvasRef.current.captureStream(30);
+
+        // Combine canvas stream with audio if available
+        if (stream.getAudioTracks().length > 0) {
+          const audioTracks = stream.getAudioTracks();
+          audioTracks.forEach((track) => canvasStream.addTrack(track));
+        }
+
+        // Determine the best available MIME type
+        let optionsForRecorder = { mimeType: 'video/webm;codecs=vp9,opus' };
+        if (!MediaRecorder.isTypeSupported(optionsForRecorder.mimeType)) {
+          optionsForRecorder = { mimeType: 'video/webm;codecs=vp8,opus' };
+          if (!MediaRecorder.isTypeSupported(optionsForRecorder.mimeType)) {
+            optionsForRecorder = { mimeType: 'video/webm' };
+            if (!MediaRecorder.isTypeSupported(optionsForRecorder.mimeType)) {
+              optionsForRecorder = { mimeType: '' };
+            }
+          }
+        }
+        mediaRecorderRef.current = new MediaRecorder(
+          canvasStream,
+          optionsForRecorder
+        );
+        setVideoMimeType(mediaRecorderRef.current.mimeType);
+
+        mediaRecorderRef.current.ondataavailable = (e) => {
+          chunks.push(e.data);
+        };
+        mediaRecorderRef.current.onstop = () => {
+          const blob = new Blob(chunks, {
+            type: mediaRecorderRef.current?.mimeType,
+          });
+          const url = URL.createObjectURL(blob);
+          setVideoUrl(url);
+        };
+        mediaRecorderRef.current.start();
+        setIsRecording(true);
+        setStartScrolling(true); // Start scrolling from beginning
+
+        // Navigate to teleprompter screen
+        setShowTeleprompter(true);
       }
     } catch (err) {
       console.error('Error accessing media devices.', err);
