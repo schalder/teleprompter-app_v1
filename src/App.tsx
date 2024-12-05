@@ -1,4 +1,4 @@
-import React, { useState, useRef, useEffect } from 'react';
+import React, { useState, useRef } from 'react';
 import Teleprompter from './components/Teleprompter';
 import RecordingModal from './components/RecordingModal';
 import VideoPreview from './components/VideoPreview';
@@ -17,6 +17,7 @@ const App: React.FC = () => {
   const [startScrolling, setStartScrolling] = useState(false);
   const [selectedResolution, setSelectedResolution] = useState('1920x1080');
   const [selectedAspectRatio, setSelectedAspectRatio] = useState('16:9');
+  const [mediaStream, setMediaStream] = useState<MediaStream | null>(null);
 
   const handleStartRecording = () => {
     setShowModal(true);
@@ -33,11 +34,11 @@ const App: React.FC = () => {
     setSelectedAspectRatio(options.aspectRatio);
 
     try {
-      let stream: MediaStream;
-
       const [canvasWidth, canvasHeight] = options.resolution
         .split('x')
         .map(Number);
+
+      let stream: MediaStream;
 
       if (options.isCameraRecording) {
         const constraints: MediaStreamConstraints = {
@@ -60,6 +61,8 @@ const App: React.FC = () => {
           audio: true,
         });
       }
+
+      setMediaStream(stream);
 
       if (videoRef.current) {
         videoRef.current.srcObject = stream;
@@ -152,7 +155,7 @@ const App: React.FC = () => {
     } catch (err) {
       console.error('Error accessing media devices.', err);
       alert(
-        'Error accessing media devices. Your camera may not support the selected resolution and aspect ratio.'
+        'Error accessing media devices. Please check your camera and microphone permissions.'
       );
     }
   };
@@ -161,10 +164,9 @@ const App: React.FC = () => {
     if (mediaRecorderRef.current) {
       mediaRecorderRef.current.stop();
     }
-    if (videoRef.current && videoRef.current.srcObject) {
-      const tracks = (videoRef.current.srcObject as MediaStream).getTracks();
-      tracks.forEach((track) => track.stop());
-      videoRef.current.srcObject = null;
+    if (mediaStream) {
+      mediaStream.getTracks().forEach((track) => track.stop());
+      setMediaStream(null);
     }
     setIsRecording(false);
     setStartScrolling(false);
