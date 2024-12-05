@@ -135,18 +135,26 @@ const RecordingModal: React.FC<RecordingModalProps> = ({
   }, [selectedVideoDevice, aspectRatio]);
 
   const handleStart = () => {
+    // Stop preview streams to release camera
     if (videoPreviewStream) {
       videoPreviewStream.getTracks().forEach((track) => track.stop());
+      setVideoPreviewStream(null);
     }
     if (screenStream) {
       screenStream.getTracks().forEach((track) => track.stop());
+      setScreenStream(null);
     }
+
+    // Call onStart with selected options
     onStart({
       isCameraRecording,
       videoDeviceId: selectedVideoDevice,
       audioDeviceId: selectedAudioDevice,
       aspectRatio,
     });
+
+    // Close the modal
+    onClose();
   };
 
   const handleVideoDeviceChange = async (
