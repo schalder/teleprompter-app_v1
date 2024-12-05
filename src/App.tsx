@@ -11,27 +11,40 @@ const App: React.FC = () => {
   const videoRef = useRef<HTMLVideoElement>(null);
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const mediaRecorderRef = useRef<MediaRecorder | null>(null);
-  const chunksRef = useRef<BlobPart[]>([]);
   const [showTeleprompter, setShowTeleprompter] = useState(true);
   const [isCameraRecording, setIsCameraRecording] = useState(true);
   const [startScrolling, setStartScrolling] = useState(false);
   const [selectedAspectRatio, setSelectedAspectRatio] = useState('16:9');
+  const [recordingError, setRecordingError] = useState<string>('');
 
-  // Handle starting the recording process
+  // Handle device changes for camera switching
+  useEffect(() => {
+    const handleDeviceChange = () => {
+      if (isRecording && isCameraRecording) {
+        alert('Camera device changed. Please restart the recording.');
+        handleStopRecording();
+      }
+    };
+
+    navigator.mediaDevices.addEventListener('devicechange', handleDeviceChange);
+    return () => {
+      navigator.mediaDevices.removeEventListener('devicechange', handleDeviceChange);
+    };
+  }, [isRecording, isCameraRecording]);
+
   const handleStartRecording = () => {
     setShowModal(true);
   };
 
-  // Handle closing the modal
   const handleModalClose = () => {
     setShowModal(false);
   };
 
-  // Handle the initiation of recording with selected options
   const handleRecordingStart = async (options: any) => {
     setShowModal(false);
     setIsCameraRecording(options.isCameraRecording);
     setSelectedAspectRatio(options.aspectRatio);
+    setRecordingError('');
 
     try {
       let stream: MediaStream;
@@ -52,7 +65,6 @@ const App: React.FC = () => {
         };
         stream = await navigator.mediaDevices.getUserMedia(constraints);
       } else {
-        // Screen recording
         stream = await navigator.mediaDevices.getDisplayMedia({
           video: true,
           audio: true,
@@ -112,6 +124,7 @@ const App: React.FC = () => {
                   sh = newSh;
                 }
 
+                ctx.clearRect(0, 0, canvasWidth, canvasHeight);
                 ctx.drawImage(
                   videoRef.current,
                   sx,
@@ -158,114 +171,122 @@ const App: React.FC = () => {
           setVideoMimeType(mediaRecorderRef.current.mimeType);
 
           mediaRecorderRef.current.ondataavailable = (e) => {
-            chunksRef.current.push(e.data);
+            chunks.push(e.data);
           };
           mediaRecorderRef.current.onstop = () => {
-            const blob = new Blob(chunksRef.current, {
+            const blob = new Blob(chunks, {
               type: mediaRecorderRef.current?.mimeType,
             });
             const url = URL.createObjectURL(blob);
             setVideoUrl(url);
-            chunksRef.current = []; // Reset chunks
-
-            // Stop the original stream
-            stream.getTracks().forEach((track) => track.stop());
+            setIsRecording(false);
+            setStartScrolling(false);
+            chunks.length = 0; // Clear chunks
+          };
+          mediaRecorderRef.current.onerror = (event) => {
+            console.error('MediaRecorder error:', event.error);
+            setRecordingError(`Recording error: ${event.error.name}`);
+            setIsRecording(false);
+            setStartScrolling(false);
           };
           mediaRecorderRef.current.start();
           setIsRecording(true);
-          setStartScrolling(true); // Start scrolling text
+          setStartScrolling(true); // Start scrolling from beginning
 
-          // Navigate to teleprompter screen
+          // Navigate to teleprompter screen and reset teleprompter scroll
           setShowTeleprompter(true);
         };
+      } catch (err: any) {
+        console.error('Error accessing media devices.', err);
+        setRecordingError(
+          'Error accessing media devices. Your camera may not support the selected aspect ratio.'
+        );
       }
     };
 
-    const handleStopRecording = () => {
-      if (mediaRecorderRef.current) {
-        mediaRecorderRef.current.stop();
-      }
-      setIsRecording(false);
-      setStartScrolling(false);
-    };
+  const handleStopRecording = () => {
+    if (mediaRecorderRef.current && isRecording) {
+      mediaRecorderRef.current.stop();
+    }
+    if (videoRef.current && videoRef.current.srcObject) {
+      const tracks = (videoRef.current.srcObject as MediaStream).getTracks();
+      tracks.forEach((track) => track.stop());
+      videoRef.current.srcObject = null;
+    }
+    setIsRecording(false);
+    setStartScrolling(false);
+  };
 
-    const handleRecordAgain = () => {
-      setVideoUrl('');
-      setIsRecording(false);
-      setShowTeleprompter(true);
-    };
+  const handleRecordAgain = () => {
+    setVideoUrl('');
+    setIsRecording(false);
+    setShowTeleprompter(true);
+  };
 
-    return (
-      <div className="min-h-screen bg-gray-900 text-white flex flex-col items-center">
-        <h1 className="text-3xl font-bold mt-6">
-          Teleprompter For Digital Creators
-        </h1>
-        <div className="w-full max-w-[900px] p-4">
-          {!videoUrl ? (
-            <>
-              {showTeleprompter && (
-                <div className="relative">
-                  <Teleprompter
-                    onStartRecording={handleStartRecording}
-                    isRecording={isRecording}
-                    isCameraRecording={isCameraRecording}
-                    videoRef={videoRef}
-                    startScrolling={startScrolling}
-                    setStartScrolling={setStartScrolling}
-                  />
-                  {isRecording && isCameraRecording && (
-                    <>
-                      <div
-                        className="absolute bottom-4 right-4 overflow-hidden bg-black rounded"
-                        style={{
-                          width: '150px',
-                          height: '150px',
-                          aspectRatio: selectedAspectRatio.replace(':', '/'),
-                        }}
-                      >
-                        <canvas ref={canvasRef} className="w-full h-full" />
-                      </div>
-                      <button
-                        onClick={handleStopRecording}
-                        className="fixed top-4 right-4 px-4 py-2 bg-red-500 text-white rounded"
-                      >
-                        Stop Recording
-                      </button>
-                    </>
-                  )}
-                  {isRecording && !isCameraRecording && (
+  return (
+    <div className="min-h-screen bg-gray-900 text-white flex flex-col items-center">
+      <h1 className="text-3xl font-bold mt-6">Teleprompter For Digital Creators</h1>
+      <div className="w-full max-w-[900px] p-4">
+        {!videoUrl ? (
+          <>
+            {showTeleprompter && (
+              <div className="relative">
+                <Teleprompter
+                  onStartRecording={handleStartRecording}
+                  isRecording={isRecording}
+                  isCameraRecording={isCameraRecording}
+                  startScrolling={startScrolling}
+                  setStartScrolling={setStartScrolling}
+                />
+                {isRecording && isCameraRecording && (
+                  <>
+                    <div
+                      className="absolute bottom-4 right-4 overflow-hidden bg-black rounded"
+                      style={{
+                        width: '150px',
+                        height: '150px',
+                        aspectRatio: selectedAspectRatio.replace(':', '/'),
+                      }}
+                    >
+                      <canvas ref={canvasRef} className="w-full h-full" />
+                    </div>
                     <button
                       onClick={handleStopRecording}
                       className="fixed top-4 right-4 px-4 py-2 bg-red-500 text-white rounded"
                     >
                       Stop Recording
                     </button>
-                  )}
-                </div>
-              )}
-              {showModal && (
-                <RecordingModal
-                  onClose={handleModalClose}
-                  onStart={handleRecordingStart}
-                />
-              )}
-            </>
-          ) : (
-            <VideoPreview
-              videoUrl={videoUrl}
-              onRecordAgain={handleRecordAgain}
-              mimeType={videoMimeType}
-            />
-          )}
-        </div>
+                  </>
+                )}
+                {isRecording && !isCameraRecording && (
+                  <button
+                    onClick={handleStopRecording}
+                    className="fixed top-4 right-4 px-4 py-2 bg-red-500 text-white rounded"
+                  >
+                    Stop Recording
+                  </button>
+                )}
+              </div>
+            )}
+            {showModal && (
+              <RecordingModal onClose={handleModalClose} onStart={handleRecordingStart} />
+            )}
+            {recordingError && (
+              <div className="mt-4 p-4 bg-red-600 text-white rounded">
+                {recordingError}
+              </div>
+            )}
+          </>
+        ) : (
+          <VideoPreview
+            videoUrl={videoUrl}
+            onRecordAgain={handleRecordAgain}
+            mimeType={videoMimeType}
+          />
+        )}
       </div>
-    );
-    };
+    </div>
+  );
+};
 
-    export default App;
-    ```
-
-    **Key Changes:**
-
-    - **Fixed Modal Size:** Ensured that the modal has a fixed size regardless of the selected aspect ratio.
-    - **Proper State Management:** Used `chunksRef` to handle data chunks correctly and reset them after re
+export default App;
