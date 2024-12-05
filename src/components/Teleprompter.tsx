@@ -19,11 +19,11 @@ const Teleprompter: React.FC<TeleprompterProps> = ({
   const scrollIntervalRef = useRef<NodeJS.Timeout | null>(null);
 
   const sampleText = `
-    Lorem ipsum dolor sit amet, consectetur adipiscing elit. 
-    Sed do eiusmod tempor incididunt ut labore et dolore magna aliqua. 
-    Ut enim ad minim veniam, quis nostrud exercitation ullamco laboris 
-    nisi ut aliquip ex ea commodo consequat. Duis aute irure dolor in 
-    reprehenderit in voluptate velit esse cillum dolore eu fugiat nulla pariatur.
+    Welcome to your teleprompter application. This text will scroll as you record your video.
+    Ensure that you maintain eye contact with the camera for a more engaging presentation.
+    Remember to speak clearly and at a steady pace.
+    This is an example of how the teleprompter works with your recording.
+    Good luck with your recording session!
   `;
 
   useEffect(() => {
@@ -77,7 +77,10 @@ const Teleprompter: React.FC<TeleprompterProps> = ({
         {sampleText}
       </div>
       <button
-        onClick={onStartRecording}
+        onClick={() => {
+          onStartRecording();
+          setStartScrolling(true); // Start scrolling from beginning
+        }}
         className={`px-4 py-2 bg-green-500 text-white rounded ${
           isRecording ? 'opacity-50 cursor-not-allowed' : 'hover:bg-green-600'
         }`}
