@@ -1,10 +1,37 @@
-import React from "react";
+import React, { useEffect, useRef } from 'react';
 
-const CameraPreview: React.FC<{ previewVideo: string }> = ({ previewVideo }) => {
+interface CameraPreviewProps {
+  cameraId: string;
+  aspectRatio: '9:16' | '16:9';
+}
+
+const CameraPreview: React.FC<CameraPreviewProps> = ({ cameraId, aspectRatio }) => {
+  const videoRef = useRef<HTMLVideoElement>(null);
+
+  useEffect(() => {
+    const startCamera = async () => {
+      try {
+        const stream = await navigator.mediaDevices.getUserMedia({
+          video: { deviceId: cameraId ? { exact: cameraId } : undefined },
+        });
+        if (videoRef.current) {
+          videoRef.current.srcObject = stream;
+        }
+      } catch (err) {
+        console.error('Error accessing camera:', err);
+      }
+    };
+
+    startCamera();
+  }, [cameraId]);
+
   return (
-    <div className="border border-gray-700 p-4 rounded-md">
-      <video src={previewVideo} controls className="w-full h-auto" />
-    </div>
+    <video
+      ref={videoRef}
+      autoPlay
+      muted
+      className={`rounded-lg ${aspectRatio === '9:16' ? 'aspect-video' : 'aspect-video'}`}
+    ></video>
   );
 };
 
