@@ -5,14 +5,19 @@ interface RecordingModalProps {
   onStart: (options: any) => void;
 }
 
-const RecordingModal: React.FC<RecordingModalProps> = ({ onClose, onStart }) => {
+const RecordingModal: React.FC<RecordingModalProps> = ({
+  onClose,
+  onStart,
+}) => {
   const [isCameraRecording, setIsCameraRecording] = useState(true);
   const [videoDevices, setVideoDevices] = useState<MediaDeviceInfo[]>([]);
   const [audioDevices, setAudioDevices] = useState<MediaDeviceInfo[]>([]);
   const [selectedVideoDevice, setSelectedVideoDevice] = useState<string>('');
   const [selectedAudioDevice, setSelectedAudioDevice] = useState<string>('');
-  const [resolution, setResolution] = useState('1920x1080');
-  const [videoPreviewStream, setVideoPreviewStream] = useState<MediaStream | null>(null);
+  const [aspectRatio, setAspectRatio] = useState('16:9');
+  const [videoPreviewStream, setVideoPreviewStream] = useState<MediaStream | null>(
+    null
+  );
   const videoPreviewRef = React.useRef<HTMLVideoElement>(null);
   const [screenStream, setScreenStream] = useState<MediaStream | null>(null);
 
@@ -22,8 +27,12 @@ const RecordingModal: React.FC<RecordingModalProps> = ({ onClose, onStart }) => 
         await navigator.mediaDevices.getUserMedia({ video: true, audio: true });
 
         const devices = await navigator.mediaDevices.enumerateDevices();
-        const videoInputs = devices.filter((device) => device.kind === 'videoinput');
-        const audioInputs = devices.filter((device) => device.kind === 'audioinput');
+        const videoInputs = devices.filter(
+          (device) => device.kind === 'videoinput'
+        );
+        const audioInputs = devices.filter(
+          (device) => device.kind === 'audioinput'
+        );
 
         setVideoDevices(videoInputs);
         setAudioDevices(audioInputs);
@@ -37,7 +46,9 @@ const RecordingModal: React.FC<RecordingModalProps> = ({ onClose, onStart }) => 
         }
       } catch (error) {
         console.error('Error accessing media devices.', error);
-        alert('Error accessing media devices. Please check your camera and microphone permissions.');
+        alert(
+          'Error accessing media devices. Please check your camera and microphone permissions.'
+        );
       }
     };
 
@@ -46,7 +57,9 @@ const RecordingModal: React.FC<RecordingModalProps> = ({ onClose, onStart }) => 
 
   const handleScreenRecordingSelection = async () => {
     try {
-      const stream = await navigator.mediaDevices.getDisplayMedia({ video: true });
+      const stream = await navigator.mediaDevices.getDisplayMedia({
+        video: true,
+      });
       setScreenStream(stream);
       if (videoPreviewRef.current) {
         videoPreviewRef.current.srcObject = stream;
@@ -77,14 +90,12 @@ const RecordingModal: React.FC<RecordingModalProps> = ({ onClose, onStart }) => 
 
   const updatePreviewStream = async () => {
     if (selectedVideoDevice && isCameraRecording) {
-      const [width, height] = resolution.split('x').map(Number);
+      const aspectRatioValue = aspectRatio === '16:9' ? 16 / 9 : 9 / 16;
       const constraints: MediaStreamConstraints = {
         video: {
-          deviceId: selectedVideoDevice ? { exact: selectedVideoDevice } : undefined,
-          width: { ideal: width },
-          height: { ideal: height },
+          deviceId: { exact: selectedVideoDevice },
+          aspectRatio: { ideal: aspectRatioValue },
           frameRate: { ideal: 30 },
-          // aspectRatio: { ideal: width / height }, // Removed exact aspectRatio
         },
         audio: false,
       };
@@ -97,15 +108,16 @@ const RecordingModal: React.FC<RecordingModalProps> = ({ onClose, onStart }) => 
         setVideoPreviewStream(stream);
         if (videoPreviewRef.current) {
           videoPreviewRef.current.srcObject = stream;
-          // Adjust video element styling to match aspect ratio
+          // Adjust video element styling
+          videoPreviewRef.current.style.objectFit = 'cover';
           videoPreviewRef.current.style.width = '100%';
-          videoPreviewRef.current.style.height = 'auto';
-          videoPreviewRef.current.style.aspectRatio = `${width} / ${height}`;
-          videoPreviewRef.current.style.maxHeight = '300px'; // Limit the height to prevent modal overflow
+          videoPreviewRef.current.style.height = '100%';
         }
       } catch (error) {
         console.error('Error updating camera preview:', error);
-        alert('Selected camera or resolution is not supported.');
+        alert(
+          'Selected camera is not supported or not accessible. Please check permissions.'
+        );
       }
     }
   };
@@ -120,7 +132,7 @@ const RecordingModal: React.FC<RecordingModalProps> = ({ onClose, onStart }) => 
       }
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [selectedVideoDevice, resolution]);
+  }, [selectedVideoDevice, aspectRatio]);
 
   const handleStart = () => {
     if (videoPreviewStream) {
@@ -133,26 +145,38 @@ const RecordingModal: React.FC<RecordingModalProps> = ({ onClose, onStart }) => 
       isCameraRecording,
       videoDeviceId: selectedVideoDevice,
       audioDeviceId: selectedAudioDevice,
-      resolution,
+      aspectRatio,
     });
   };
 
-  const handleVideoDeviceChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
+  const handleVideoDeviceChange = async (
+    e: React.ChangeEvent<HTMLSelectElement>
+  ) => {
     setSelectedVideoDevice(e.target.value);
+    // Request permission for the new device
+    try {
+      await navigator.mediaDevices.getUserMedia({
+        video: { deviceId: { exact: e.target.value } },
+      });
+    } catch (error) {
+      console.error('Error accessing the selected camera.', error);
+      alert('Permission denied for the selected camera.');
+    }
   };
 
-  const handleResolutionChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
-    setResolution(e.target.value);
+  const handleAspectRatioChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
+    setAspectRatio(e.target.value);
   };
 
   return (
-    <div className="fixed inset-0 bg-black bg-opacity-50 flex justify-center items-center z-50 overflow-y-auto">
+    <div className="fixed inset-0 bg-black bg-opacity-50 flex justify-center items-center z-50">
       <div className="bg-gray-800 text-white p-6 rounded space-y-4 w-full max-w-lg">
         <h2 className="text-xl font-bold">Recording Options</h2>
         <div className="flex space-x-4">
           <label className="flex items-center space-x-2">
             <input
-              type="checkbox"
+              type="radio"
+              name="recordingType"
               checked={isCameraRecording}
               onChange={() => setIsCameraRecording(true)}
             />
@@ -160,7 +184,8 @@ const RecordingModal: React.FC<RecordingModalProps> = ({ onClose, onStart }) => 
           </label>
           <label className="flex items-center space-x-2">
             <input
-              type="checkbox"
+              type="radio"
+              name="recordingType"
               checked={!isCameraRecording}
               onChange={() => setIsCameraRecording(false)}
             />
@@ -184,24 +209,28 @@ const RecordingModal: React.FC<RecordingModalProps> = ({ onClose, onStart }) => 
               </select>
             </div>
             <div>
-              <label className="block">Resolution:</label>
+              <label className="block">Aspect Ratio:</label>
               <select
-                value={resolution}
-                onChange={handleResolutionChange}
+                value={aspectRatio}
+                onChange={handleAspectRatioChange}
                 className="w-full border p-2 bg-gray-700 text-white rounded"
               >
-                <option value="1920x1080">1920x1080 (Landscape)</option>
-                <option value="1080x1920">1080x1920 (Portrait)</option>
+                <option value="16:9">Landscape (16:9)</option>
+                <option value="9:16">Portrait (9:16)</option>
               </select>
             </div>
             <div className="mt-4">
-              <video
-                ref={videoPreviewRef}
-                autoPlay
-                muted
-                className="bg-black object-contain w-full"
-                style={{ maxHeight: '300px' }} // Limit the height to prevent modal overflow
-              ></video>
+              <div
+                className="w-full bg-black relative overflow-hidden"
+                style={{ aspectRatio: aspectRatio.replace(':', '/') }}
+              >
+                <video
+                  ref={videoPreviewRef}
+                  autoPlay
+                  muted
+                  className="absolute inset-0 w-full h-full object-cover"
+                ></video>
+              </div>
             </div>
           </>
         )}
