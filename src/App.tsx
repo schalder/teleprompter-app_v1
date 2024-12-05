@@ -34,12 +34,12 @@ const App: React.FC = () => {
         const [width, height] = options.resolution.split('x').map(Number);
         const constraints: MediaStreamConstraints = {
           video: {
-            deviceId: options.videoDeviceId ? { ideal: options.videoDeviceId } : undefined,
+            deviceId: options.videoDeviceId ? { exact: options.videoDeviceId } : undefined,
             width: { ideal: width },
             height: { ideal: height },
             frameRate: { ideal: 30 },
           },
-          audio: options.audioDeviceId ? { deviceId: { ideal: options.audioDeviceId } } : true,
+          audio: options.audioDeviceId ? { exact: options.audioDeviceId } : true,
         };
         stream = await navigator.mediaDevices.getUserMedia(constraints);
       } else {
