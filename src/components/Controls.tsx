@@ -1,32 +1,44 @@
-import React from "react";
+import React from 'react';
 
-interface Props {
-  isRecording: boolean;
-  onStart: () => void;
-  onStop: () => void;
-  setPreviewVideo: (video: string | null) => void;
+interface ControlsProps {
+  fontSize: number;
+  setFontSize: React.Dispatch<React.SetStateAction<number>>;
+  scrollSpeed: number;
+  setScrollSpeed: React.Dispatch<React.SetStateAction<number>>;
 }
 
-const Controls: React.FC<Props> = ({ isRecording, onStart, onStop, setPreviewVideo }) => {
+const Controls: React.FC<ControlsProps> = ({
+  fontSize,
+  setFontSize,
+  scrollSpeed,
+  setScrollSpeed,
+}) => {
   return (
-    <div className="flex items-center gap-2 my-4">
-      {!isRecording ? (
-        <button
-          onClick={onStart}
-          className="bg-green-500 text-white px-4 py-2 rounded-md"
-        >
-          Start Recording
-        </button>
-      ) : (
-        <>
-          <button
-            onClick={onStop}
-            className="bg-red-500 text-white px-4 py-2 rounded-md"
-          >
-            Stop Recording
-          </button>
-        </>
-      )}
+    <div className="flex flex-col md:flex-row justify-between items-center mb-4">
+      <div className="flex items-center mb-4 md:mb-0">
+        <label className="mr-2 font-semibold">Font Size:</label>
+        <input
+          type="range"
+          min="16"
+          max="48"
+          value={fontSize}
+          onChange={(e) => setFontSize(Number(e.target.value))}
+          className="slider"
+        />
+        <span className="ml-2">{fontSize}px</span>
+      </div>
+      <div className="flex items-center">
+        <label className="mr-2 font-semibold">Scroll Speed:</label>
+        <input
+          type="range"
+          min="10"
+          max="100"
+          value={scrollSpeed}
+          onChange={(e) => setScrollSpeed(Number(e.target.value))}
+          className="slider"
+        />
+        <span className="ml-2">{scrollSpeed}</span>
+      </div>
     </div>
   );
 };
