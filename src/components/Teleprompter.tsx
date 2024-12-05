@@ -36,6 +36,7 @@ const Teleprompter: React.FC<TeleprompterProps> = ({
       startScrollingText();
       // Reset 'startScrolling' to prevent repeated triggers
       setStartScrolling(false);
+      console.log('startScrolling state reset to false.');
     }
   }, [startScrolling, setStartScrolling]);
 
@@ -66,6 +67,9 @@ const Teleprompter: React.FC<TeleprompterProps> = ({
     const id = window.setInterval(() => {
       if (textRef.current) {
         textRef.current.scrollTop += scrollSpeed / 9;
+        console.log(
+          `Scrolling... Current scrollTop: ${textRef.current.scrollTop}`
+        );
         // Check if reached the bottom
         if (
           textRef.current.scrollTop + textRef.current.clientHeight >=
@@ -79,6 +83,8 @@ const Teleprompter: React.FC<TeleprompterProps> = ({
           textRef.current.scrollTop = 0;
           console.log('Scroll position reset to top after reaching the end.');
         }
+      } else {
+        console.warn('textRef.current is null during scrolling.');
       }
     }, 50);
     scrollIntervalRef.current = id;
