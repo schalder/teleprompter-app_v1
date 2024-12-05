@@ -3,6 +3,7 @@ import React, { useState, useRef, useEffect } from 'react';
 interface TeleprompterProps {
   onStartRecording: () => void;
   isRecording: boolean;
+  isCameraRecording: boolean;
   videoRef: React.RefObject<HTMLVideoElement>;
   startScrolling: boolean;
   setStartScrolling: React.Dispatch<React.SetStateAction<boolean>>;
@@ -11,6 +12,7 @@ interface TeleprompterProps {
 const Teleprompter: React.FC<TeleprompterProps> = ({
   onStartRecording,
   isRecording,
+  isCameraRecording,
   videoRef,
   startScrolling,
   setStartScrolling,
@@ -19,49 +21,30 @@ const Teleprompter: React.FC<TeleprompterProps> = ({
   const [scrollSpeed, setScrollSpeed] = useState(9);
   const [isScrolling, setIsScrolling] = useState(false);
   const textRef = useRef<HTMLDivElement>(null);
-  const scrollIntervalRef = useRef<number | null>(null);
-  const [textContent, setTextContent] = useState(
-    `Your teleprompter text goes here...`
-  );
+  const [scrollIntervalId, setScrollIntervalId] = useState<number | null>(null);
+  const [textContent, setTextContent] = useState(`Your teleprompter text goes here...`);
 
   useEffect(() => {
     if (startScrolling) {
-      console.log('startScrolling is true, starting scrolling...');
-      // Reset scroll position to top
+      // Reset scroll position
       if (textRef.current) {
         textRef.current.scrollTop = 0;
-        console.log('Scroll position reset to top.');
       }
-      // Start scrolling
       startScrollingText();
-      // Reset 'startScrolling' to prevent repeated triggers
-      setStartScrolling(false);
     }
-  }, [startScrolling, setStartScrolling]);
-
-  useEffect(() => {
-    if (!isRecording) {
-      console.log('Recording stopped, stopping scrolling...');
-      stopScrolling();
-    }
-  }, [isRecording]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [startScrolling]);
 
   useEffect(() => {
     return () => {
-      if (scrollIntervalRef.current !== null) {
-        clearInterval(scrollIntervalRef.current);
-        console.log('Scroll interval cleared on unmount.');
+      if (scrollIntervalId !== null) {
+        clearInterval(scrollIntervalId);
       }
     };
-  }, []);
+  }, [scrollIntervalId]);
 
   const startScrollingText = () => {
     setIsScrolling(true);
-    console.log('Starting text scrolling...');
-    // Clear any existing interval
-    if (scrollIntervalRef.current !== null) {
-      clearInterval(scrollIntervalRef.current);
-    }
     const id = window.setInterval(() => {
       if (textRef.current) {
         textRef.current.scrollTop += scrollSpeed / 9;
@@ -71,65 +54,41 @@ const Teleprompter: React.FC<TeleprompterProps> = ({
           textRef.current.scrollHeight
         ) {
           clearInterval(id);
-          scrollIntervalRef.current = null;
           setIsScrolling(false);
-          console.log('Reached the end of the text.');
-          // Optionally reset scroll position to top
+          setStartScrolling(false);
+          // Reset scroll position to top
           textRef.current.scrollTop = 0;
         }
       }
     }, 50);
-    scrollIntervalRef.current = id;
+    setScrollIntervalId(id);
   };
 
   const stopScrolling = () => {
     setIsScrolling(false);
-    if (scrollIntervalRef.current !== null) {
-      clearInterval(scrollIntervalRef.current);
-      scrollIntervalRef.current = null;
-      console.log('Scrolling stopped.');
+    if (scrollIntervalId !== null) {
+      clearInterval(scrollIntervalId);
+      setScrollIntervalId(null);
     }
   };
 
   const handlePreviewScroll = () => {
-    console.log('Preview scroll started.');
     // Reset scroll position
     if (textRef.current) {
       textRef.current.scrollTop = 0;
+    }
+    if (scrollIntervalId !== null) {
+      clearInterval(scrollIntervalId);
     }
     startScrollingText();
   };
 
   const handlePlayPause = () => {
     if (isScrolling) {
-      console.log('Pausing scrolling.');
       stopScrolling();
     } else {
-      console.log('Resuming scrolling.');
       startScrollingText();
     }
-  };
-
-  const handleTextChange = (e: React.ChangeEvent<HTMLTextAreaElement>) => {
-    setTextContent(e.target.value);
-  };
-
-  const handleFontSizeChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const size = Number(e.target.value);
-    if (isNaN(size) || size < 16 || size > 72) {
-      alert('Font size must be between 16 and 72.');
-      return;
-    }
-    setFontSize(size);
-  };
-
-  const handleScrollSpeedChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const speed = Number(e.target.value);
-    if (isNaN(speed) || speed < 1 || speed > 20) {
-      alert('Scroll speed must be between 1 and 20.');
-      return;
-    }
-    setScrollSpeed(speed);
   };
 
   return (
@@ -147,7 +106,7 @@ const Teleprompter: React.FC<TeleprompterProps> = ({
       <textarea
         className="w-full h-32 p-2 bg-gray-800 text-white rounded border border-gray-700"
         value={textContent}
-        onChange={handleTextChange}
+        onChange={(e) => setTextContent(e.target.value)}
         placeholder="Enter your text here..."
       ></textarea>
       <div className="flex flex-wrap justify-center space-x-4">
@@ -158,7 +117,7 @@ const Teleprompter: React.FC<TeleprompterProps> = ({
             min="16"
             max="72"
             value={fontSize}
-            onChange={handleFontSizeChange}
+            onChange={(e) => setFontSize(Number(e.target.value))}
           />
           <span>{fontSize}px</span>
         </label>
@@ -169,7 +128,7 @@ const Teleprompter: React.FC<TeleprompterProps> = ({
             min="1"
             max="20"
             value={scrollSpeed}
-            onChange={handleScrollSpeedChange}
+            onChange={(e) => setScrollSpeed(Number(e.target.value))}
           />
           <span>{scrollSpeed}</span>
         </label>
@@ -189,12 +148,6 @@ const Teleprompter: React.FC<TeleprompterProps> = ({
             >
               {isScrolling ? 'Pause' : 'Play'}
             </button>
-            <button
-              onClick={onStartRecording}
-              className="px-4 py-2 bg-purple-500 text-white rounded"
-            >
-              Start Recording
-            </button>
           </>
         )}
         {isRecording && (
@@ -205,6 +158,12 @@ const Teleprompter: React.FC<TeleprompterProps> = ({
             {isScrolling ? 'Pause' : 'Play'}
           </button>
         )}
+        <button
+          onClick={onStartRecording}
+          className="px-4 py-2 bg-purple-500 text-white rounded"
+        >
+          Start Recording
+        </button>
       </div>
     </div>
   );
