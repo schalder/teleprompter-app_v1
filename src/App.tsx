@@ -49,7 +49,10 @@ const App: React.FC = () => {
         };
         stream = await navigator.mediaDevices.getUserMedia(constraints);
       } else {
-        // Screen recording code...
+        stream = await navigator.mediaDevices.getDisplayMedia({
+          video: true,
+          audio: true,
+        });
       }
 
       if (videoRef.current) {
