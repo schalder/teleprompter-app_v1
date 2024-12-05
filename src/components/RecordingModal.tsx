@@ -81,10 +81,10 @@ const RecordingModal: React.FC<RecordingModalProps> = ({ onClose, onStart }) => 
       const constraints: MediaStreamConstraints = {
         video: {
           deviceId: selectedVideoDevice ? { exact: selectedVideoDevice } : undefined,
-          width: { exact: width },
-          height: { exact: height },
+          width: { ideal: width },
+          height: { ideal: height },
           frameRate: { ideal: 30 },
-          aspectRatio: width / height,
+          // aspectRatio: { ideal: width / height }, // Removed exact aspectRatio
         },
         audio: false,
       };
