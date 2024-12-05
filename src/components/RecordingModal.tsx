@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useRef } from 'react';
 
 interface RecordingModalProps {
   onClose: () => void;
@@ -16,10 +16,8 @@ const RecordingModal: React.FC<RecordingModalProps> = ({
   const [selectedAudioDevice, setSelectedAudioDevice] = useState<string>('');
   const [resolution, setResolution] = useState('1920x1080');
   const [aspectRatio, setAspectRatio] = useState('16:9');
-  const [videoPreviewStream, setVideoPreviewStream] = useState<MediaStream | null>(
-    null
-  );
-  const videoPreviewRef = React.useRef<HTMLVideoElement>(null);
+  const videoPreviewRef = useRef<HTMLVideoElement>(null);
+  const videoPreviewStreamRef = useRef<MediaStream | null>(null);
   const [screenStream, setScreenStream] = useState<MediaStream | null>(null);
 
   useEffect(() => {
@@ -41,11 +39,11 @@ const RecordingModal: React.FC<RecordingModalProps> = ({
         setAudioDevices(audioInputs);
 
         if (videoInputs.length > 0) {
-          setSelectedVideoDevice(videoInputs[0].deviceId);
+          setSelectedVideoDevice((prev) => prev || videoInputs[0].deviceId);
         }
 
         if (audioInputs.length > 0) {
-          setSelectedAudioDevice(audioInputs[0].deviceId);
+          setSelectedAudioDevice((prev) => prev || audioInputs[0].deviceId);
         }
       } catch (error) {
         console.error('Error accessing media devices.', error);
@@ -72,18 +70,16 @@ const RecordingModal: React.FC<RecordingModalProps> = ({
       };
       try {
         // Stop existing video preview stream
-        if (videoPreviewStream) {
-          videoPreviewStream.getTracks().forEach((track) => track.stop());
+        if (videoPreviewStreamRef.current) {
+          videoPreviewStreamRef.current.getTracks().forEach((track) => track.stop());
         }
 
         const stream = await navigator.mediaDevices.getUserMedia(constraints);
-        setVideoPreviewStream(stream);
+        videoPreviewStreamRef.current = stream;
 
         if (videoPreviewRef.current) {
           videoPreviewRef.current.srcObject = stream;
-          videoPreviewRef.current.onloadedmetadata = () => {
-            videoPreviewRef.current?.play();
-          };
+          await videoPreviewRef.current.play();
         }
       } catch (error) {
         console.error('Error updating camera preview:', error);
@@ -98,19 +94,23 @@ const RecordingModal: React.FC<RecordingModalProps> = ({
     updatePreviewStream();
 
     return () => {
-      if (videoPreviewStream) {
-        videoPreviewStream.getTracks().forEach((track) => track.stop());
+      // Stop the video preview stream when component unmounts or dependencies change
+      if (videoPreviewStreamRef.current) {
+        videoPreviewStreamRef.current.getTracks().forEach((track) => track.stop());
+        videoPreviewStreamRef.current = null;
       }
     };
-    // Adding resolution to the dependency array to update when it changes
-  }, [selectedVideoDevice, resolution]);
+  }, [selectedVideoDevice, resolution, isCameraRecording]);
 
   const handleStart = () => {
-    if (videoPreviewStream) {
-      videoPreviewStream.getTracks().forEach((track) => track.stop());
+    // Stop the preview streams before starting the recording
+    if (videoPreviewStreamRef.current) {
+      videoPreviewStreamRef.current.getTracks().forEach((track) => track.stop());
+      videoPreviewStreamRef.current = null;
     }
     if (screenStream) {
       screenStream.getTracks().forEach((track) => track.stop());
+      setScreenStream(null);
     }
     onStart({
       isCameraRecording,
@@ -123,13 +123,11 @@ const RecordingModal: React.FC<RecordingModalProps> = ({
 
   const handleVideoDeviceChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
     setSelectedVideoDevice(e.target.value);
-    updatePreviewStream();
   };
 
   const handleResolutionChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
     setResolution(e.target.value);
     setAspectRatio(e.target.value === '1920x1080' ? '16:9' : '9:16');
-    updatePreviewStream();
   };
 
   return (
