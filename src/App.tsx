@@ -59,9 +59,14 @@ const App: React.FC = () => {
         console.log('User media obtained:', stream);
       } else {
         // Screen recording code...
-        console.error('Screen recording not implemented.');
-        alert('Screen recording is not implemented yet.');
-        return;
+        console.log('Requesting screen media...');
+        stream = await navigator.mediaDevices.getDisplayMedia({
+          video: true,
+          audio: options.audioDeviceId
+            ? { deviceId: { exact: options.audioDeviceId } }
+            : true,
+        });
+        console.log('Screen media obtained:', stream);
       }
 
       // Proceed to set up the recording
@@ -160,6 +165,8 @@ const App: React.FC = () => {
           const audioTracks = stream.getAudioTracks();
           audioTracks.forEach((track) => canvasStream?.addTrack(track));
           console.log('Audio tracks added to canvas stream.');
+        } else {
+          console.warn('No audio tracks to add to canvas stream.');
         }
 
         // Determine the best available MIME type
@@ -202,7 +209,9 @@ const App: React.FC = () => {
         // Update state to indicate recording has started
         setIsRecording(true);
         setStartScrolling(true); // Start scrolling from beginning
-        console.log('Recording state updated: isRecording = true, startScrolling = true');
+        console.log(
+          'Recording state updated: isRecording = true, startScrolling = true'
+        );
       }
     } catch (error) {
       console.error('Error during setupRecording:', error);
@@ -226,7 +235,9 @@ const App: React.FC = () => {
     }
     setIsRecording(false);
     setStartScrolling(false);
-    console.log('Recording state updated: isRecording = false, startScrolling = false');
+    console.log(
+      'Recording state updated: isRecording = false, startScrolling = false'
+    );
   };
 
   const handleRecordAgain = () => {
