@@ -32,11 +32,11 @@ const App: React.FC = () => {
       if (options.isCameraRecording) {
         const constraints: MediaStreamConstraints = {
           video: {
-            deviceId: options.videoDeviceId,
+            deviceId: { exact: options.videoDeviceId },
             width: { exact: parseInt(options.resolution.split('x')[0]) },
             height: { exact: parseInt(options.resolution.split('x')[1]) },
           },
-          audio: { deviceId: options.audioDeviceId },
+          audio: { deviceId: { exact: options.audioDeviceId } },
         };
         stream = await navigator.mediaDevices.getUserMedia(constraints);
       } else {
@@ -89,7 +89,7 @@ const App: React.FC = () => {
   return (
     <div className="min-h-screen bg-gray-900 text-white flex flex-col items-center">
       <h1 className="text-3xl font-bold mt-6">Teleprompter For Digital Creators</h1>
-      <div className="w-full max-w-3xl p-4">
+      <div className="w-full max-w-[900px] p-4">
         {!videoUrl ? (
           <>
             {showTeleprompter && (
