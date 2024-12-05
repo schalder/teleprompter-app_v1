@@ -1,7 +1,9 @@
-Teleprompter App
+Teleprompter App: 
+
 A modern teleprompter application built using TypeScript and Tailwind CSS, designed for creating professional-quality teleprompter recordings. The app is fully mobile-friendly, has a dark theme, and is optimized for deployment on Netlify via GitHub.
 
-Features
+Features: 
+
 Teleprompter Text Area: Editable area for writing or modifying scrolling text.
 Customizable Scrolling:
 Range slider to adjust font size.
@@ -21,7 +23,9 @@ Responsive Design: Optimized for desktop, tablet, and mobile devices.
 Dark Theme: Professional modern UI with a maximum width of 900px.
 
 
-Technology Stack
+
+Technology Stack : 
+
 TypeScript: For type-safe application logic.
 Tailwind CSS: For responsive and modern UI design.
 Vite: For fast development and build processes.
@@ -29,7 +33,8 @@ Netlify: For seamless hosting and deployment.
 MediaRecorder API: For recording video and audio.
 
 
-Setup and Deployment
+Setup and Deployment: 
+
 This app is ready to deploy on Netlify directly from GitHub.
 
 Steps to Deploy:
