@@ -3,7 +3,6 @@ import React, { useState, useRef, useEffect } from 'react';
 interface TeleprompterProps {
   onStartRecording: () => void;
   isRecording: boolean;
-  isCameraRecording: boolean;
   videoRef: React.RefObject<HTMLVideoElement>;
   startScrolling: boolean;
   setStartScrolling: React.Dispatch<React.SetStateAction<boolean>>;
@@ -12,7 +11,6 @@ interface TeleprompterProps {
 const Teleprompter: React.FC<TeleprompterProps> = ({
   onStartRecording,
   isRecording,
-  isCameraRecording,
   videoRef,
   startScrolling,
   setStartScrolling,
@@ -24,7 +22,6 @@ const Teleprompter: React.FC<TeleprompterProps> = ({
   const scrollIntervalRef = useRef<number | null>(null);
   const [textContent, setTextContent] = useState(`Your teleprompter text goes here...`);
 
-  // Start scrolling when 'startScrolling' becomes true
   useEffect(() => {
     if (startScrolling) {
       // Reset scroll position to top
@@ -36,17 +33,14 @@ const Teleprompter: React.FC<TeleprompterProps> = ({
       // Reset 'startScrolling' to prevent repeated triggers
       setStartScrolling(false);
     }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [startScrolling]);
+  }, [startScrolling, setStartScrolling]);
 
-  // Stop scrolling when recording stops
   useEffect(() => {
     if (!isRecording) {
       stopScrolling();
     }
   }, [isRecording]);
 
-  // Cleanup interval on unmount
   useEffect(() => {
     return () => {
       if (scrollIntervalRef.current !== null) {
@@ -92,9 +86,6 @@ const Teleprompter: React.FC<TeleprompterProps> = ({
     // Reset scroll position
     if (textRef.current) {
       textRef.current.scrollTop = 0;
-    }
-    if (scrollIntervalRef.current !== null) {
-      clearInterval(scrollIntervalRef.current);
     }
     startScrollingText();
   };
@@ -164,6 +155,12 @@ const Teleprompter: React.FC<TeleprompterProps> = ({
             >
               {isScrolling ? 'Pause' : 'Play'}
             </button>
+            <button
+              onClick={onStartRecording}
+              className="px-4 py-2 bg-purple-500 text-white rounded"
+            >
+              Start Recording
+            </button>
           </>
         )}
         {isRecording && (
@@ -172,14 +169,6 @@ const Teleprompter: React.FC<TeleprompterProps> = ({
             className="px-4 py-2 bg-green-500 text-white rounded"
           >
             {isScrolling ? 'Pause' : 'Play'}
-          </button>
-        )}
-        {!isRecording && (
-          <button
-            onClick={onStartRecording}
-            className="px-4 py-2 bg-purple-500 text-white rounded"
-          >
-            Start Recording
           </button>
         )}
       </div>
