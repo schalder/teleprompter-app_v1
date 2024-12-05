@@ -80,10 +80,11 @@ const RecordingModal: React.FC<RecordingModalProps> = ({ onClose, onStart }) => 
       const [width, height] = resolution.split('x').map(Number);
       const constraints: MediaStreamConstraints = {
         video: {
-          deviceId: selectedVideoDevice ? { ideal: selectedVideoDevice } : undefined,
-          width: { ideal: width },
-          height: { ideal: height },
+          deviceId: selectedVideoDevice ? { exact: selectedVideoDevice } : undefined,
+          width: { exact: width },
+          height: { exact: height },
           frameRate: { ideal: 30 },
+          aspectRatio: width / height,
         },
         audio: false,
       };
@@ -100,6 +101,7 @@ const RecordingModal: React.FC<RecordingModalProps> = ({ onClose, onStart }) => 
           videoPreviewRef.current.style.width = '100%';
           videoPreviewRef.current.style.height = 'auto';
           videoPreviewRef.current.style.aspectRatio = `${width} / ${height}`;
+          videoPreviewRef.current.style.maxHeight = '300px'; // Limit the height to prevent modal overflow
         }
       } catch (error) {
         console.error('Error updating camera preview:', error);
@@ -144,7 +146,7 @@ const RecordingModal: React.FC<RecordingModalProps> = ({ onClose, onStart }) => 
   };
 
   return (
-    <div className="fixed inset-0 bg-black bg-opacity-50 flex justify-center items-center z-50">
+    <div className="fixed inset-0 bg-black bg-opacity-50 flex justify-center items-center z-50 overflow-y-auto">
       <div className="bg-gray-800 text-white p-6 rounded space-y-4 w-full max-w-lg">
         <h2 className="text-xl font-bold">Recording Options</h2>
         <div className="flex space-x-4">
@@ -197,7 +199,8 @@ const RecordingModal: React.FC<RecordingModalProps> = ({ onClose, onStart }) => 
                 ref={videoPreviewRef}
                 autoPlay
                 muted
-                className="bg-black object-contain"
+                className="bg-black object-contain w-full"
+                style={{ maxHeight: '300px' }} // Limit the height to prevent modal overflow
               ></video>
             </div>
           </>
