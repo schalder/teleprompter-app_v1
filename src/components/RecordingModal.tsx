@@ -5,18 +5,21 @@ interface RecordingModalProps {
   onStart: (options: any) => void;
 }
 
-const RecordingModal: React.FC<RecordingModalProps> = ({ onClose, onStart }) => {
+const RecordingModal: React.FC<RecordingModalProps> = ({
+  onClose,
+  onStart,
+}) => {
   const [isCameraRecording, setIsCameraRecording] = useState(true);
   const [videoDevices, setVideoDevices] = useState<MediaDeviceInfo[]>([]);
   const [audioDevices, setAudioDevices] = useState<MediaDeviceInfo[]>([]);
   const [selectedVideoDevice, setSelectedVideoDevice] = useState<string>('');
   const [selectedAudioDevice, setSelectedAudioDevice] = useState<string>('');
   const [aspectRatio, setAspectRatio] = useState('16:9');
-  const [previewAspectRatio, setPreviewAspectRatio] = useState('16:9');
-  const [videoPreviewStream, setVideoPreviewStream] = useState<MediaStream | null>(null);
+  const [videoPreviewStream, setVideoPreviewStream] = useState<MediaStream | null>(
+    null
+  );
   const videoPreviewRef = React.useRef<HTMLVideoElement>(null);
   const [screenStream, setScreenStream] = useState<MediaStream | null>(null);
-  const [modalHeight, setModalHeight] = useState('auto');
 
   useEffect(() => {
     const getDevices = async () => {
@@ -24,8 +27,12 @@ const RecordingModal: React.FC<RecordingModalProps> = ({ onClose, onStart }) => 
         await navigator.mediaDevices.getUserMedia({ video: true, audio: true });
 
         const devices = await navigator.mediaDevices.enumerateDevices();
-        const videoInputs = devices.filter((device) => device.kind === 'videoinput');
-        const audioInputs = devices.filter((device) => device.kind === 'audioinput');
+        const videoInputs = devices.filter(
+          (device) => device.kind === 'videoinput'
+        );
+        const audioInputs = devices.filter(
+          (device) => device.kind === 'audioinput'
+        );
 
         setVideoDevices(videoInputs);
         setAudioDevices(audioInputs);
@@ -39,7 +46,9 @@ const RecordingModal: React.FC<RecordingModalProps> = ({ onClose, onStart }) => 
         }
       } catch (error) {
         console.error('Error accessing media devices.', error);
-        alert('Error accessing media devices. Please check your camera and microphone permissions.');
+        alert(
+          'Error accessing media devices. Please check your camera and microphone permissions.'
+        );
       }
     };
 
@@ -57,7 +66,6 @@ const RecordingModal: React.FC<RecordingModalProps> = ({ onClose, onStart }) => 
       }
     } catch (error) {
       console.error('Error accessing screen for recording:', error);
-      alert('Error accessing screen for recording.');
     }
   };
 
@@ -100,17 +108,16 @@ const RecordingModal: React.FC<RecordingModalProps> = ({ onClose, onStart }) => 
         setVideoPreviewStream(stream);
         if (videoPreviewRef.current) {
           videoPreviewRef.current.srcObject = stream;
-          videoPreviewRef.current.onloadedmetadata = () => {
-            videoPreviewRef.current?.play();
-          };
+          // Adjust video element styling
+          videoPreviewRef.current.style.objectFit = 'cover';
+          videoPreviewRef.current.style.width = '100%';
+          videoPreviewRef.current.style.height = '100%';
         }
-
-        // Adjust modal height based on aspect ratio
-        setModalHeight(aspectRatio === '16:9' ? 'auto' : 'auto'); // Adjust as needed
-        setPreviewAspectRatio(aspectRatio);
       } catch (error) {
         console.error('Error updating camera preview:', error);
-        alert('Selected camera is not supported or not accessible. Please check permissions.');
+        alert(
+          'Selected camera is not supported or not accessible. Please check permissions.'
+        );
       }
     }
   };
@@ -142,7 +149,9 @@ const RecordingModal: React.FC<RecordingModalProps> = ({ onClose, onStart }) => 
     });
   };
 
-  const handleVideoDeviceChange = async (e: React.ChangeEvent<HTMLSelectElement>) => {
+  const handleVideoDeviceChange = async (
+    e: React.ChangeEvent<HTMLSelectElement>
+  ) => {
     setSelectedVideoDevice(e.target.value);
     // Request permission for the new device
     try {
@@ -160,127 +169,105 @@ const RecordingModal: React.FC<RecordingModalProps> = ({ onClose, onStart }) => 
   };
 
   return (
-    <div
-      className="fixed inset-0 bg-black bg-opacity-50 flex justify-center items-center z-50"
-      style={{ overflowY: 'auto' }} // Ensure scroll if content overflows
-    >
-      <div
-        className="bg-gray-800 text-white p-6 rounded max-h-full overflow-y-auto"
-        style={{ width: '90%', maxWidth: '500px' }}
-      >
-        <h2 className="text-xl font-bold mb-4">Recording Options</h2>
-        <div className="flex flex-col space-y-4">
-          <div className="flex space-x-4">
-            <label className="flex items-center space-x-2">
-              <input
-                type="radio"
-                name="recordingType"
-                checked={isCameraRecording}
-                onChange={() => setIsCameraRecording(true)}
-              />
-              <span>Camera Recording</span>
-            </label>
-            <label className="flex items-center space-x-2">
-              <input
-                type="radio"
-                name="recordingType"
-                checked={!isCameraRecording}
-                onChange={() => setIsCameraRecording(false)}
-              />
-              <span>Screen Recording</span>
-            </label>
-          </div>
-          {isCameraRecording && (
-            <>
-              <div>
-                <label className="block mb-1">Video Device:</label>
-                <select
-                  value={selectedVideoDevice}
-                  onChange={handleVideoDeviceChange}
-                  className="w-full border p-2 bg-gray-700 text-white rounded"
-                >
-                  {videoDevices.map((device) => (
-                    <option key={device.deviceId} value={device.deviceId}>
-                      {device.label || `Camera ${device.deviceId}`}
-                    </option>
-                  ))}
-                </select>
-              </div>
-              <div>
-                <label className="block mb-1">Aspect Ratio:</label>
-                <select
-                  value={aspectRatio}
-                  onChange={handleAspectRatioChange}
-                  className="w-full border p-2 bg-gray-700 text-white rounded"
-                >
-                  <option value="16:9">Landscape (16:9)</option>
-                  <option value="9:16">Portrait (9:16)</option>
-                </select>
-              </div>
-              <div className="mt-4">
-                <div
-                  className="w-full bg-black relative overflow-hidden rounded"
-                  style={{
-                    aspectRatio: previewAspectRatio.replace(':', '/'),
-                    height: '200px', // Fixed height to prevent modal expansion
-                  }}
-                >
-                  <video
-                    ref={videoPreviewRef}
-                    autoPlay
-                    muted
-                    className="absolute inset-0 w-full h-full object-cover rounded"
-                  ></video>
-                </div>
-              </div>
-            </>
-          )}
-          {!isCameraRecording && (
+    <div className="fixed inset-0 bg-black bg-opacity-50 flex justify-center items-center z-50">
+      <div className="bg-gray-800 text-white p-6 rounded space-y-4 w-full max-w-lg">
+        <h2 className="text-xl font-bold">Recording Options</h2>
+        <div className="flex space-x-4">
+          <label className="flex items-center space-x-2">
+            <input
+              type="radio"
+              name="recordingType"
+              checked={isCameraRecording}
+              onChange={() => setIsCameraRecording(true)}
+            />
+            <span>Camera Recording</span>
+          </label>
+          <label className="flex items-center space-x-2">
+            <input
+              type="radio"
+              name="recordingType"
+              checked={!isCameraRecording}
+              onChange={() => setIsCameraRecording(false)}
+            />
+            <span>Screen Recording</span>
+          </label>
+        </div>
+        {isCameraRecording && (
+          <>
+            <div>
+              <label className="block">Video Device:</label>
+              <select
+                value={selectedVideoDevice}
+                onChange={handleVideoDeviceChange}
+                className="w-full border p-2 bg-gray-700 text-white rounded"
+              >
+                {videoDevices.map((device) => (
+                  <option key={device.deviceId} value={device.deviceId}>
+                    {device.label || `Camera ${device.deviceId}`}
+                  </option>
+                ))}
+              </select>
+            </div>
+            <div>
+              <label className="block">Aspect Ratio:</label>
+              <select
+                value={aspectRatio}
+                onChange={handleAspectRatioChange}
+                className="w-full border p-2 bg-gray-700 text-white rounded"
+              >
+                <option value="16:9">Landscape (16:9)</option>
+                <option value="9:16">Portrait (9:16)</option>
+              </select>
+            </div>
             <div className="mt-4">
               <div
-                className="w-full bg-black relative overflow-hidden rounded"
-                style={{
-                  aspectRatio: '16/9', // Default for screen recording
-                  height: '200px',
-                }}
+                className="w-full bg-black relative overflow-hidden"
+                style={{ aspectRatio: aspectRatio.replace(':', '/') }}
               >
                 <video
                   ref={videoPreviewRef}
                   autoPlay
                   muted
-                  className="absolute inset-0 w-full h-full object-contain rounded"
+                  className="absolute inset-0 w-full h-full object-cover"
                 ></video>
               </div>
             </div>
-          )}
-          <div>
-            <label className="block mb-1">Audio Device:</label>
-            <select
-              value={selectedAudioDevice}
-              onChange={(e) => setSelectedAudioDevice(e.target.value)}
-              className="w-full border p-2 bg-gray-700 text-white rounded"
-            >
-              {audioDevices.map((device) => (
-                <option key={device.deviceId} value={device.deviceId}>
-                  {device.label || `Microphone ${device.deviceId}`}
-                </option>
-              ))}
-            </select>
+          </>
+        )}
+        {!isCameraRecording && (
+          <div className="mt-4">
+            <video
+              ref={videoPreviewRef}
+              autoPlay
+              muted
+              className="w-full h-64 bg-black object-contain"
+            ></video>
           </div>
-          <div className="flex justify-end space-x-4 mt-4">
-            <button
-              onClick={onClose}
-              className="px-4 py-2 border rounded hover:bg-gray-700"
-            >
-              Cancel
-            </button>
-            <button
-              onClick={handleStart}
-              className="px-4 py-2 bg-blue-500 text-white rounded hover:bg-blue-600"
-            >
-              Start Recording
-            </button>
-          </div>
+        )}
+        <div>
+          <label className="block">Audio Device:</label>
+          <select
+            value={selectedAudioDevice}
+            onChange={(e) => setSelectedAudioDevice(e.target.value)}
+            className="w-full border p-2 bg-gray-700 text-white rounded"
+          >
+            {audioDevices.map((device) => (
+              <option key={device.deviceId} value={device.deviceId}>
+                {device.label || `Microphone ${device.deviceId}`}
+              </option>
+            ))}
+          </select>
+        </div>
+        <div className="flex justify-end space-x-4">
+          <button onClick={onClose} className="px-4 py-2 border rounded">
+            Cancel
+          </button>
+          <button
+            onClick={handleStart}
+            className="px-4 py-2 bg-blue-500 text-white rounded"
+          >
+            Start Recording
+          </button>
         </div>
       </div>
     </div>
