@@ -17,14 +17,18 @@ const App: React.FC = () => {
   const [selectedAspectRatio, setSelectedAspectRatio] = useState('16:9');
 
   const handleStartRecording = () => {
+    console.log('Opening recording modal...');
     setShowModal(true);
   };
 
   const handleModalClose = () => {
+    console.log('Closing recording modal...');
     setShowModal(false);
   };
 
   const handleRecordingStart = async (options: any) => {
+    console.log('Recording options received:', options);
+
     // Ensure the modal is closed
     setShowModal(false);
 
@@ -50,10 +54,14 @@ const App: React.FC = () => {
             ? { deviceId: { exact: options.audioDeviceId } }
             : true,
         };
+        console.log('Requesting user media with constraints:', constraints);
         stream = await navigator.mediaDevices.getUserMedia(constraints);
+        console.log('User media obtained:', stream);
       } else {
         // Screen recording code...
-        return; // Exit if screen recording is not implemented
+        console.error('Screen recording not implemented.');
+        alert('Screen recording is not implemented yet.');
+        return;
       }
 
       // Proceed to set up the recording
@@ -61,142 +69,168 @@ const App: React.FC = () => {
     } catch (err) {
       console.error('Error accessing media devices.', err);
       alert(
-        'Error accessing media devices. Your camera may not support the selected aspect ratio.'
+        'Error accessing media devices. Please check your camera and microphone permissions.'
       );
     }
   };
 
   const setupRecording = async (stream: MediaStream, aspectRatio: string) => {
-    // Set up the video element and canvas for recording
-    if (videoRef.current) {
-      videoRef.current.srcObject = stream;
-      await videoRef.current.play(); // Ensure the video is playing
+    console.log('Setting up recording...');
+    try {
+      // Set up the video element and canvas for recording
+      if (videoRef.current) {
+        videoRef.current.srcObject = stream;
+        await videoRef.current.play(); // Ensure the video is playing
+        console.log('Video element is playing.');
 
-      const videoWidth = videoRef.current.videoWidth;
-      const videoHeight = videoRef.current.videoHeight;
-      const videoAspectRatio = videoWidth / videoHeight;
+        const videoWidth = videoRef.current.videoWidth;
+        const videoHeight = videoRef.current.videoHeight;
+        const videoAspectRatio = videoWidth / videoHeight;
+        console.log('Video dimensions:', { videoWidth, videoHeight });
 
-      // Set canvas dimensions based on selected aspect ratio
-      let canvasWidth = 1280;
-      let canvasHeight = 720;
-      if (aspectRatio === '16:9') {
-        canvasWidth = 1280;
-        canvasHeight = 720;
-      } else if (aspectRatio === '9:16') {
-        canvasWidth = 720;
-        canvasHeight = 1280;
-      }
+        // Set canvas dimensions based on selected aspect ratio
+        let canvasWidth = 1280;
+        let canvasHeight = 720;
+        if (aspectRatio === '16:9') {
+          canvasWidth = 1280;
+          canvasHeight = 720;
+        } else if (aspectRatio === '9:16') {
+          canvasWidth = 720;
+          canvasHeight = 1280;
+        }
 
-      if (canvasRef.current) {
-        canvasRef.current.width = canvasWidth;
-        canvasRef.current.height = canvasHeight;
-      }
+        if (canvasRef.current) {
+          canvasRef.current.width = canvasWidth;
+          canvasRef.current.height = canvasHeight;
+          console.log('Canvas dimensions set:', { canvasWidth, canvasHeight });
+        }
 
-      // Start drawing video to canvas
-      const drawToCanvas = () => {
-        if (canvasRef.current && videoRef.current) {
-          const ctx = canvasRef.current.getContext('2d');
-          if (ctx) {
-            let sx = 0,
-              sy = 0,
-              sw = videoWidth,
-              sh = videoHeight;
-            let dx = 0,
-              dy = 0,
-              dw = canvasWidth,
-              dh = canvasHeight;
+        // Start drawing video to canvas
+        const drawToCanvas = () => {
+          if (canvasRef.current && videoRef.current) {
+            const ctx = canvasRef.current.getContext('2d');
+            if (ctx) {
+              let sx = 0,
+                sy = 0,
+                sw = videoWidth,
+                sh = videoHeight;
+              let dx = 0,
+                dy = 0,
+                dw = canvasWidth,
+                dh = canvasHeight;
 
-            const canvasAspectRatio = canvasWidth / canvasHeight;
+              const canvasAspectRatio = canvasWidth / canvasHeight;
 
-            if (videoAspectRatio > canvasAspectRatio) {
-              // Video is wider than canvas, crop the sides
-              const newSw = videoHeight * canvasAspectRatio;
-              sx = (videoWidth - newSw) / 2;
-              sw = newSw;
-            } else if (videoAspectRatio < canvasAspectRatio) {
-              // Video is taller than canvas, crop the top and bottom
-              const newSh = videoWidth / canvasAspectRatio;
-              sy = (videoHeight - newSh) / 2;
-              sh = newSh;
+              if (videoAspectRatio > canvasAspectRatio) {
+                // Video is wider than canvas, crop the sides
+                const newSw = videoHeight * canvasAspectRatio;
+                sx = (videoWidth - newSw) / 2;
+                sw = newSw;
+              } else if (videoAspectRatio < canvasAspectRatio) {
+                // Video is taller than canvas, crop the top and bottom
+                const newSh = videoWidth / canvasAspectRatio;
+                sy = (videoHeight - newSh) / 2;
+                sh = newSh;
+              }
+
+              ctx.drawImage(
+                videoRef.current,
+                sx,
+                sy,
+                sw,
+                sh,
+                dx,
+                dy,
+                dw,
+                dh
+              );
             }
-
-            ctx.drawImage(
-              videoRef.current,
-              sx,
-              sy,
-              sw,
-              sh,
-              dx,
-              dy,
-              dw,
-              dh
-            );
           }
+          requestAnimationFrame(drawToCanvas);
+        };
+
+        drawToCanvas();
+
+        // Get canvas stream for recording
+        const canvasStream = canvasRef.current?.captureStream(30);
+        console.log('Canvas stream captured:', canvasStream);
+
+        // Combine canvas stream with audio if available
+        if (stream.getAudioTracks().length > 0 && canvasStream) {
+          const audioTracks = stream.getAudioTracks();
+          audioTracks.forEach((track) => canvasStream?.addTrack(track));
+          console.log('Audio tracks added to canvas stream.');
         }
-        requestAnimationFrame(drawToCanvas);
-      };
 
-      drawToCanvas();
-
-      // Get canvas stream for recording
-      const canvasStream = canvasRef.current?.captureStream(30);
-
-      // Combine canvas stream with audio if available
-      if (stream.getAudioTracks().length > 0 && canvasStream) {
-        const audioTracks = stream.getAudioTracks();
-        audioTracks.forEach((track) => canvasStream?.addTrack(track));
-      }
-
-      // Determine the best available MIME type
-      let optionsForRecorder = { mimeType: 'video/webm;codecs=vp9,opus' };
-      if (!MediaRecorder.isTypeSupported(optionsForRecorder.mimeType)) {
-        optionsForRecorder = { mimeType: 'video/webm;codecs=vp8,opus' };
+        // Determine the best available MIME type
+        let optionsForRecorder = { mimeType: 'video/webm;codecs=vp9,opus' };
         if (!MediaRecorder.isTypeSupported(optionsForRecorder.mimeType)) {
-          optionsForRecorder = { mimeType: 'video/webm' };
+          optionsForRecorder = { mimeType: 'video/webm;codecs=vp8,opus' };
           if (!MediaRecorder.isTypeSupported(optionsForRecorder.mimeType)) {
-            optionsForRecorder = { mimeType: '' };
+            optionsForRecorder = { mimeType: 'video/webm' };
+            if (!MediaRecorder.isTypeSupported(optionsForRecorder.mimeType)) {
+              optionsForRecorder = { mimeType: '' };
+            }
           }
         }
+        console.log('MediaRecorder options:', optionsForRecorder);
+
+        mediaRecorderRef.current = new MediaRecorder(
+          canvasStream as MediaStream,
+          optionsForRecorder
+        );
+        setVideoMimeType(mediaRecorderRef.current.mimeType);
+        console.log('MediaRecorder created:', mediaRecorderRef.current);
+
+        mediaRecorderRef.current.ondataavailable = (e) => {
+          console.log('Data available:', e.data);
+          setChunks((prevChunks) => [...prevChunks, e.data]);
+        };
+        mediaRecorderRef.current.onstop = () => {
+          console.log('Recording stopped.');
+          const blob = new Blob(chunks, {
+            type: mediaRecorderRef.current?.mimeType,
+          });
+          const url = URL.createObjectURL(blob);
+          setVideoUrl(url);
+          setChunks([]); // Clear chunks
+          console.log('Video URL created:', url);
+        };
+        mediaRecorderRef.current.start(100); // Collect data every 100ms
+        console.log('MediaRecorder started.');
+
+        // Update state to indicate recording has started
+        setIsRecording(true);
+        setStartScrolling(true); // Start scrolling from beginning
+        console.log('Recording state updated: isRecording = true, startScrolling = true');
       }
-      mediaRecorderRef.current = new MediaRecorder(
-        canvasStream as MediaStream,
-        optionsForRecorder
-      );
-      setVideoMimeType(mediaRecorderRef.current.mimeType);
-
-      mediaRecorderRef.current.ondataavailable = (e) => {
-        setChunks((prevChunks) => [...prevChunks, e.data]);
-      };
-      mediaRecorderRef.current.onstop = () => {
-        const blob = new Blob(chunks, {
-          type: mediaRecorderRef.current?.mimeType,
-        });
-        const url = URL.createObjectURL(blob);
-        setVideoUrl(url);
-        setChunks([]); // Clear chunks
-      };
-      mediaRecorderRef.current.start(100); // Collect data every 100ms
-
-      // Update state to indicate recording has started
-      setIsRecording(true);
-      setStartScrolling(true); // Start scrolling from beginning
+    } catch (error) {
+      console.error('Error during setupRecording:', error);
+      alert('An error occurred while setting up the recording.');
     }
   };
 
   const handleStopRecording = () => {
+    console.log('Stopping recording...');
     if (mediaRecorderRef.current && mediaRecorderRef.current.state !== 'inactive') {
       mediaRecorderRef.current.stop();
+      console.log('MediaRecorder stopped.');
+    } else {
+      console.warn('MediaRecorder is already inactive.');
     }
     if (videoRef.current && videoRef.current.srcObject) {
       const tracks = (videoRef.current.srcObject as MediaStream).getTracks();
       tracks.forEach((track) => track.stop());
       videoRef.current.srcObject = null;
+      console.log('Video tracks stopped.');
     }
     setIsRecording(false);
     setStartScrolling(false);
+    console.log('Recording state updated: isRecording = false, startScrolling = false');
   };
 
   const handleRecordAgain = () => {
+    console.log('Preparing to record again...');
     setVideoUrl('');
     setIsRecording(false);
     setStartScrolling(false); // Reset scrolling
