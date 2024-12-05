@@ -157,13 +157,11 @@ const App: React.FC = () => {
           });
           const url = URL.createObjectURL(blob);
           setVideoUrl(url);
+          chunks.length = 0; // Clear chunks
         };
         mediaRecorderRef.current.start();
         setIsRecording(true);
         setStartScrolling(true); // Start scrolling from beginning
-
-        // Navigate to teleprompter screen
-        setShowTeleprompter(true);
       }
     } catch (err) {
       console.error('Error accessing media devices.', err);
