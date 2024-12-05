@@ -15,8 +15,8 @@ const App: React.FC = () => {
   const [showTeleprompter, setShowTeleprompter] = useState(true);
   const [isCameraRecording, setIsCameraRecording] = useState(true);
   const [startScrolling, setStartScrolling] = useState(false);
+  const [selectedResolution, setSelectedResolution] = useState('1920x1080');
   const [selectedAspectRatio, setSelectedAspectRatio] = useState('16:9');
-  const [recordingStream, setRecordingStream] = useState<MediaStream | null>(null);
 
   const handleStartRecording = () => {
     setShowModal(true);
@@ -29,19 +29,22 @@ const App: React.FC = () => {
   const handleRecordingStart = async (options: any) => {
     setShowModal(false);
     setIsCameraRecording(options.isCameraRecording);
+    setSelectedResolution(options.resolution);
     setSelectedAspectRatio(options.aspectRatio);
 
     try {
       let stream: MediaStream;
 
+      const [width, height] = options.resolution.split('x').map(Number);
+
       if (options.isCameraRecording) {
-        const aspectRatioValue = options.aspectRatio === '16:9' ? 16 / 9 : 9 / 16;
         const constraints: MediaStreamConstraints = {
           video: {
             deviceId: options.videoDeviceId
               ? { exact: options.videoDeviceId }
               : undefined,
-            aspectRatio: { ideal: aspectRatioValue },
+            width: { ideal: width },
+            height: { ideal: height },
             frameRate: { ideal: 30 },
           },
           audio: options.audioDeviceId
@@ -53,31 +56,15 @@ const App: React.FC = () => {
         // Screen recording code...
       }
 
-      setRecordingStream(stream); // Store the stream for later cleanup
-
       if (videoRef.current) {
         videoRef.current.srcObject = stream;
         videoRef.current.onloadedmetadata = () => {
           videoRef.current?.play();
 
-          const videoWidth = videoRef.current!.videoWidth;
-          const videoHeight = videoRef.current!.videoHeight;
-          const videoAspectRatio = videoWidth / videoHeight;
-
-          // Set canvas dimensions based on selected aspect ratio
-          let canvasWidth = 1280;
-          let canvasHeight = 720;
-          if (options.aspectRatio === '16:9') {
-            canvasWidth = 1280;
-            canvasHeight = 720;
-          } else if (options.aspectRatio === '9:16') {
-            canvasWidth = 720;
-            canvasHeight = 1280;
-          }
-
+          // Set canvas dimensions
           if (canvasRef.current) {
-            canvasRef.current.width = canvasWidth;
-            canvasRef.current.height = canvasHeight;
+            canvasRef.current.width = width;
+            canvasRef.current.height = height;
           }
 
           // Start drawing video to canvas
@@ -85,16 +72,19 @@ const App: React.FC = () => {
             if (canvasRef.current && videoRef.current) {
               const ctx = canvasRef.current.getContext('2d');
               if (ctx) {
+                const videoWidth = videoRef.current.videoWidth;
+                const videoHeight = videoRef.current.videoHeight;
+                const videoAspectRatio = videoWidth / videoHeight;
+                const canvasAspectRatio = width / height;
+
                 let sx = 0,
                   sy = 0,
                   sw = videoWidth,
                   sh = videoHeight;
                 let dx = 0,
                   dy = 0,
-                  dw = canvasWidth,
-                  dh = canvasHeight;
-
-                const canvasAspectRatio = canvasWidth / canvasHeight;
+                  dw = width,
+                  dh = height;
 
                 if (videoAspectRatio > canvasAspectRatio) {
                   // Video is wider than canvas, crop the sides
@@ -173,7 +163,7 @@ const App: React.FC = () => {
     } catch (err) {
       console.error('Error accessing media devices.', err);
       alert(
-        'Error accessing media devices. Your camera may not support the selected aspect ratio.'
+        'Error accessing media devices. Your camera may not support the selected resolution and aspect ratio.'
       );
     }
   };
@@ -182,9 +172,10 @@ const App: React.FC = () => {
     if (mediaRecorderRef.current) {
       mediaRecorderRef.current.stop();
     }
-    if (recordingStream) {
-      recordingStream.getTracks().forEach((track) => track.stop());
-      setRecordingStream(null);
+    if (videoRef.current && videoRef.current.srcObject) {
+      const tracks = (videoRef.current.srcObject as MediaStream).getTracks();
+      tracks.forEach((track) => track.stop());
+      videoRef.current.srcObject = null;
     }
     setIsRecording(false);
     setStartScrolling(false);
@@ -221,7 +212,7 @@ const App: React.FC = () => {
                       style={{
                         width: '150px',
                         height: '150px',
-                        aspectRatio: selectedAspectRatio.replace(':', '/'),
+                        aspectRatio: selectedAspectRatio,
                       }}
                     >
                       <canvas ref={canvasRef} className="w-full h-full" />
