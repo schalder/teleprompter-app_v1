@@ -24,9 +24,11 @@ const Teleprompter: React.FC<TeleprompterProps> = ({
 
   useEffect(() => {
     if (startScrolling) {
+      console.log('startScrolling is true, starting scrolling...');
       // Reset scroll position to top
       if (textRef.current) {
         textRef.current.scrollTop = 0;
+        console.log('Scroll position reset to top.');
       }
       // Start scrolling
       startScrollingText();
@@ -37,6 +39,7 @@ const Teleprompter: React.FC<TeleprompterProps> = ({
 
   useEffect(() => {
     if (!isRecording) {
+      console.log('Recording stopped, stopping scrolling...');
       stopScrolling();
     }
   }, [isRecording]);
@@ -45,12 +48,14 @@ const Teleprompter: React.FC<TeleprompterProps> = ({
     return () => {
       if (scrollIntervalRef.current !== null) {
         clearInterval(scrollIntervalRef.current);
+        console.log('Scroll interval cleared on unmount.');
       }
     };
   }, []);
 
   const startScrollingText = () => {
     setIsScrolling(true);
+    console.log('Starting text scrolling...');
     // Clear any existing interval
     if (scrollIntervalRef.current !== null) {
       clearInterval(scrollIntervalRef.current);
@@ -66,6 +71,7 @@ const Teleprompter: React.FC<TeleprompterProps> = ({
           clearInterval(id);
           scrollIntervalRef.current = null;
           setIsScrolling(false);
+          console.log('Reached the end of the text.');
           // Optionally reset scroll position to top
           textRef.current.scrollTop = 0;
         }
@@ -79,10 +85,12 @@ const Teleprompter: React.FC<TeleprompterProps> = ({
     if (scrollIntervalRef.current !== null) {
       clearInterval(scrollIntervalRef.current);
       scrollIntervalRef.current = null;
+      console.log('Scrolling stopped.');
     }
   };
 
   const handlePreviewScroll = () => {
+    console.log('Preview scroll started.');
     // Reset scroll position
     if (textRef.current) {
       textRef.current.scrollTop = 0;
@@ -92,87 +100,16 @@ const Teleprompter: React.FC<TeleprompterProps> = ({
 
   const handlePlayPause = () => {
     if (isScrolling) {
+      console.log('Pausing scrolling.');
       stopScrolling();
     } else {
+      console.log('Resuming scrolling.');
       startScrollingText();
     }
   };
 
   return (
-    <div className="flex flex-col items-center p-4 space-y-4 bg-gray-800 text-white rounded-lg max-w-full">
-      <div
-        ref={textRef}
-        className="w-full h-96 overflow-hidden p-4 bg-gray-800 rounded"
-        style={{
-          fontSize: `${fontSize}px`,
-          whiteSpace: 'pre-wrap', // Preserve whitespace and line breaks
-        }}
-      >
-        {textContent}
-      </div>
-      <textarea
-        className="w-full h-32 p-2 bg-gray-800 text-white rounded border border-gray-700"
-        value={textContent}
-        onChange={(e) => setTextContent(e.target.value)}
-        placeholder="Enter your text here..."
-      ></textarea>
-      <div className="flex flex-wrap justify-center space-x-4">
-        <label className="flex items-center space-x-2">
-          <span>Font Size:</span>
-          <input
-            type="range"
-            min="16"
-            max="72"
-            value={fontSize}
-            onChange={(e) => setFontSize(Number(e.target.value))}
-          />
-          <span>{fontSize}px</span>
-        </label>
-        <label className="flex items-center space-x-2">
-          <span>Scroll Speed:</span>
-          <input
-            type="range"
-            min="1"
-            max="20"
-            value={scrollSpeed}
-            onChange={(e) => setScrollSpeed(Number(e.target.value))}
-          />
-          <span>{scrollSpeed}</span>
-        </label>
-      </div>
-      <div className="flex flex-wrap justify-center space-x-4">
-        {!isRecording && (
-          <>
-            <button
-              onClick={handlePreviewScroll}
-              className="px-4 py-2 bg-blue-500 text-white rounded"
-            >
-              Preview Scroll
-            </button>
-            <button
-              onClick={handlePlayPause}
-              className="px-4 py-2 bg-green-500 text-white rounded"
-            >
-              {isScrolling ? 'Pause' : 'Play'}
-            </button>
-            <button
-              onClick={onStartRecording}
-              className="px-4 py-2 bg-purple-500 text-white rounded"
-            >
-              Start Recording
-            </button>
-          </>
-        )}
-        {isRecording && (
-          <button
-            onClick={handlePlayPause}
-            className="px-4 py-2 bg-green-500 text-white rounded"
-          >
-            {isScrolling ? 'Pause' : 'Play'}
-          </button>
-        )}
-      </div>
-    </div>
+    // ... [existing JSX]
   );
 };
 
