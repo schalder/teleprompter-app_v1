@@ -14,6 +14,7 @@ const RecordingModal: React.FC<RecordingModalProps> = ({
   const [audioDevices, setAudioDevices] = useState<MediaDeviceInfo[]>([]);
   const [selectedVideoDevice, setSelectedVideoDevice] = useState<string>('');
   const [selectedAudioDevice, setSelectedAudioDevice] = useState<string>('');
+  const [resolution, setResolution] = useState('1920x1080');
   const [aspectRatio, setAspectRatio] = useState('16:9');
   const [videoPreviewStream, setVideoPreviewStream] = useState<MediaStream | null>(
     null
@@ -90,11 +91,12 @@ const RecordingModal: React.FC<RecordingModalProps> = ({
 
   const updatePreviewStream = async () => {
     if (selectedVideoDevice && isCameraRecording) {
-      const aspectRatioValue = aspectRatio === '16:9' ? 16 / 9 : 9 / 16;
+      const [width, height] = resolution.split('x').map(Number);
       const constraints: MediaStreamConstraints = {
         video: {
           deviceId: { exact: selectedVideoDevice },
-          aspectRatio: { ideal: aspectRatioValue },
+          width: { ideal: width },
+          height: { ideal: height },
           frameRate: { ideal: 30 },
         },
         audio: false,
@@ -132,22 +134,20 @@ const RecordingModal: React.FC<RecordingModalProps> = ({
       }
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [selectedVideoDevice, aspectRatio]);
+  }, [selectedVideoDevice, resolution]);
 
   const handleStart = () => {
-    // Ensure streams are cleaned up before starting
     if (videoPreviewStream) {
       videoPreviewStream.getTracks().forEach((track) => track.stop());
-      setVideoPreviewStream(null);
     }
     if (screenStream) {
       screenStream.getTracks().forEach((track) => track.stop());
-      setScreenStream(null);
     }
     onStart({
       isCameraRecording,
       videoDeviceId: selectedVideoDevice,
       audioDeviceId: selectedAudioDevice,
+      resolution,
       aspectRatio,
     });
   };
@@ -167,12 +167,13 @@ const RecordingModal: React.FC<RecordingModalProps> = ({
     }
   };
 
-  const handleAspectRatioChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
-    setAspectRatio(e.target.value);
+  const handleResolutionChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
+    setResolution(e.target.value);
+    setAspectRatio(e.target.value === '1920x1080' ? '16:9' : '9:16');
   };
 
   return (
-    <div className="fixed inset-0 bg-black bg-opacity-50 flex justify-center items-center z-50 overflow-y-auto">
+    <div className="fixed inset-0 bg-black bg-opacity-50 flex justify-center items-center z-50">
       <div className="bg-gray-800 text-white p-6 rounded space-y-4 w-full max-w-lg">
         <h2 className="text-xl font-bold">Recording Options</h2>
         <div className="flex space-x-4">
@@ -212,23 +213,20 @@ const RecordingModal: React.FC<RecordingModalProps> = ({
               </select>
             </div>
             <div>
-              <label className="block">Aspect Ratio:</label>
+              <label className="block">Resolution:</label>
               <select
-                value={aspectRatio}
-                onChange={handleAspectRatioChange}
+                value={resolution}
+                onChange={handleResolutionChange}
                 className="w-full border p-2 bg-gray-700 text-white rounded"
               >
-                <option value="16:9">Landscape (16:9)</option>
-                <option value="9:16">Portrait (9:16)</option>
+                <option value="1920x1080">1920x1080 (Landscape)</option>
+                <option value="1080x1920">1080x1920 (Portrait)</option>
               </select>
             </div>
             <div className="mt-4">
               <div
                 className="w-full bg-black relative overflow-hidden"
-                style={{
-                  aspectRatio: aspectRatio.replace(':', '/'),
-                  maxHeight: '300px',
-                }}
+                style={{ aspectRatio: aspectRatio }}
               >
                 <video
                   ref={videoPreviewRef}
