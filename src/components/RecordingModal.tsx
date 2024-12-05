@@ -91,11 +91,12 @@ const RecordingModal: React.FC<RecordingModalProps> = ({
 
   const updatePreviewStream = async () => {
     if (selectedVideoDevice && isCameraRecording) {
+      const [width, height] = resolution.split('x').map(Number);
       const constraints: MediaStreamConstraints = {
         video: {
           deviceId: { exact: selectedVideoDevice },
-          width: { ideal: 1920 },
-          height: { ideal: 1080 },
+          width: { ideal: width },
+          height: { ideal: height },
           frameRate: { ideal: 30 },
         },
         audio: false,
@@ -133,7 +134,7 @@ const RecordingModal: React.FC<RecordingModalProps> = ({
       }
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [selectedVideoDevice]);
+  }, [selectedVideoDevice, resolution]);
 
   const handleStart = () => {
     if (videoPreviewStream) {
