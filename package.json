@@ -1,14 +1,21 @@
 {
+  "name": "teleprompter-app",
+  "version": "1.0.0",
+  "scripts": {
+    "dev": "vite",
+    "build": "vite build",
+    "preview": "vite preview"
+  },
   "dependencies": {
     "react": "^18.x",
-    "react-dom": "^18.x",
+    "react-dom": "^18.x"
+  },
+  "devDependencies": {
+    "vite": "^4.x",
+    "@vitejs/plugin-react": "^2.x",
     "typescript": "^4.x",
     "tailwindcss": "^3.x",
     "postcss": "^8.x",
     "autoprefixer": "^10.x"
-  },
-  "devDependencies": {
-    "vite": "^4.x",
-    "@vitejs/plugin-react": "^2.x"
   }
 }
