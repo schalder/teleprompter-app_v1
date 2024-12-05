@@ -21,30 +21,46 @@ const Teleprompter: React.FC<TeleprompterProps> = ({
   const [scrollSpeed, setScrollSpeed] = useState(9);
   const [isScrolling, setIsScrolling] = useState(false);
   const textRef = useRef<HTMLDivElement>(null);
-  const [scrollIntervalId, setScrollIntervalId] = useState<number | null>(null);
+  const scrollIntervalRef = useRef<number | null>(null);
   const [textContent, setTextContent] = useState(`Your teleprompter text goes here...`);
 
+  // Start scrolling when 'startScrolling' becomes true
   useEffect(() => {
     if (startScrolling) {
-      // Reset scroll position
+      // Reset scroll position to top
       if (textRef.current) {
         textRef.current.scrollTop = 0;
       }
+      // Start scrolling
       startScrollingText();
+      // Reset 'startScrolling' to prevent repeated triggers
+      setStartScrolling(false);
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [startScrolling]);
 
+  // Stop scrolling when recording stops
+  useEffect(() => {
+    if (!isRecording) {
+      stopScrolling();
+    }
+  }, [isRecording]);
+
+  // Cleanup interval on unmount
   useEffect(() => {
     return () => {
-      if (scrollIntervalId !== null) {
-        clearInterval(scrollIntervalId);
+      if (scrollIntervalRef.current !== null) {
+        clearInterval(scrollIntervalRef.current);
       }
     };
-  }, [scrollIntervalId]);
+  }, []);
 
   const startScrollingText = () => {
     setIsScrolling(true);
+    // Clear any existing interval
+    if (scrollIntervalRef.current !== null) {
+      clearInterval(scrollIntervalRef.current);
+    }
     const id = window.setInterval(() => {
       if (textRef.current) {
         textRef.current.scrollTop += scrollSpeed / 9;
@@ -54,21 +70,21 @@ const Teleprompter: React.FC<TeleprompterProps> = ({
           textRef.current.scrollHeight
         ) {
           clearInterval(id);
+          scrollIntervalRef.current = null;
           setIsScrolling(false);
-          setStartScrolling(false);
-          // Reset scroll position to top
+          // Optionally reset scroll position to top
           textRef.current.scrollTop = 0;
         }
       }
     }, 50);
-    setScrollIntervalId(id);
+    scrollIntervalRef.current = id;
   };
 
   const stopScrolling = () => {
     setIsScrolling(false);
-    if (scrollIntervalId !== null) {
-      clearInterval(scrollIntervalId);
-      setScrollIntervalId(null);
+    if (scrollIntervalRef.current !== null) {
+      clearInterval(scrollIntervalRef.current);
+      scrollIntervalRef.current = null;
     }
   };
 
@@ -77,8 +93,8 @@ const Teleprompter: React.FC<TeleprompterProps> = ({
     if (textRef.current) {
       textRef.current.scrollTop = 0;
     }
-    if (scrollIntervalId !== null) {
-      clearInterval(scrollIntervalId);
+    if (scrollIntervalRef.current !== null) {
+      clearInterval(scrollIntervalRef.current);
     }
     startScrollingText();
   };
@@ -158,16 +174,17 @@ const Teleprompter: React.FC<TeleprompterProps> = ({
             {isScrolling ? 'Pause' : 'Play'}
           </button>
         )}
-        <button
-          onClick={onStartRecording}
-          className="px-4 py-2 bg-purple-500 text-white rounded"
-        >
-          Start Recording
-        </button>
+        {!isRecording && (
+          <button
+            onClick={onStartRecording}
+            className="px-4 py-2 bg-purple-500 text-white rounded"
+          >
+            Start Recording
+          </button>
+        )}
       </div>
     </div>
   );
 };
 
 export default Teleprompter;
- 
