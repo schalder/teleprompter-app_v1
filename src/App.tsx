@@ -9,15 +9,11 @@ const App: React.FC = () => {
   const [videoUrl, setVideoUrl] = useState<string>('');
   const [videoMimeType, setVideoMimeType] = useState<string>('');
   const videoRef = useRef<HTMLVideoElement>(null);
-  const canvasRef = useRef<HTMLCanvasElement>(null);
   const mediaRecorderRef = useRef<MediaRecorder | null>(null);
   const chunks: BlobPart[] = [];
   const [showTeleprompter, setShowTeleprompter] = useState(true);
   const [isCameraRecording, setIsCameraRecording] = useState(true);
   const [startScrolling, setStartScrolling] = useState(false);
-  const [selectedResolution, setSelectedResolution] = useState('1920x1080');
-  const [selectedAspectRatio, setSelectedAspectRatio] = useState('16:9');
-  const [mediaStream, setMediaStream] = useState<MediaStream | null>(null);
 
   const handleStartRecording = () => {
     setShowModal(true);
@@ -30,133 +26,60 @@ const App: React.FC = () => {
   const handleRecordingStart = async (options: any) => {
     setShowModal(false);
     setIsCameraRecording(options.isCameraRecording);
-    setSelectedResolution(options.resolution);
-    setSelectedAspectRatio(options.aspectRatio);
 
     try {
-      const [canvasWidth, canvasHeight] = options.resolution
-        .split('x')
-        .map(Number);
-
       let stream: MediaStream;
 
       if (options.isCameraRecording) {
         const constraints: MediaStreamConstraints = {
           video: {
-            deviceId: options.videoDeviceId
-              ? { exact: options.videoDeviceId }
-              : undefined,
-            width: { ideal: canvasWidth },
-            height: { ideal: canvasHeight },
+            deviceId: { exact: options.videoDeviceId },
+            width: { min: 640, ideal: parseInt(options.resolution.split('x')[0]), max: 1920 },
+            height: { min: 480, ideal: parseInt(options.resolution.split('x')[1]), max: 1080 },
             frameRate: { ideal: 30 },
           },
-          audio: options.audioDeviceId
-            ? { deviceId: { exact: options.audioDeviceId } }
-            : true,
+          audio: options.audioDeviceId ? { deviceId: { exact: options.audioDeviceId } } : true,
         };
         stream = await navigator.mediaDevices.getUserMedia(constraints);
       } else {
-        stream = await navigator.mediaDevices.getDisplayMedia({
-          video: true,
-          audio: true,
-        });
+        stream = await navigator.mediaDevices.getDisplayMedia({ video: true, audio: true });
       }
-
-      setMediaStream(stream);
 
       if (videoRef.current) {
         videoRef.current.srcObject = stream;
-        await videoRef.current.play();
-
-        // Set canvas dimensions
-        if (canvasRef.current) {
-          canvasRef.current.width = canvasWidth;
-          canvasRef.current.height = canvasHeight;
-        }
-
-        // Start drawing video to canvas
-        const drawToCanvas = () => {
-          if (canvasRef.current && videoRef.current) {
-            const ctx = canvasRef.current.getContext('2d');
-            if (ctx) {
-              const videoWidth = videoRef.current.videoWidth;
-              const videoHeight = videoRef.current.videoHeight;
-
-              // Calculate scaling to maintain aspect ratio
-              const scaleWidth = canvasWidth / videoWidth;
-              const scaleHeight = canvasHeight / videoHeight;
-              const scale = Math.max(scaleWidth, scaleHeight);
-
-              const dx = (canvasWidth - videoWidth * scale) / 2;
-              const dy = (canvasHeight - videoHeight * scale) / 2;
-
-              ctx.clearRect(0, 0, canvasWidth, canvasHeight);
-              ctx.drawImage(
-                videoRef.current,
-                0,
-                0,
-                videoWidth,
-                videoHeight,
-                dx,
-                dy,
-                videoWidth * scale,
-                videoHeight * scale
-              );
-            }
-          }
-          requestAnimationFrame(drawToCanvas);
-        };
-
-        drawToCanvas();
-
-        // Get canvas stream for recording
-        const canvasStream = canvasRef.current.captureStream(30);
-
-        // Combine canvas stream with audio if available
-        if (stream.getAudioTracks().length > 0) {
-          const audioTracks = stream.getAudioTracks();
-          audioTracks.forEach((track) => canvasStream.addTrack(track));
-        }
-
-        // Determine the best available MIME type
-        let optionsForRecorder = { mimeType: 'video/webm;codecs=vp9,opus' };
-        if (!MediaRecorder.isTypeSupported(optionsForRecorder.mimeType)) {
-          optionsForRecorder = { mimeType: 'video/webm;codecs=vp8,opus' };
-          if (!MediaRecorder.isTypeSupported(optionsForRecorder.mimeType)) {
-            optionsForRecorder = { mimeType: 'video/webm' };
-            if (!MediaRecorder.isTypeSupported(optionsForRecorder.mimeType)) {
-              optionsForRecorder = { mimeType: '' };
-            }
-          }
-        }
-        mediaRecorderRef.current = new MediaRecorder(
-          canvasStream,
-          optionsForRecorder
-        );
-        setVideoMimeType(mediaRecorderRef.current.mimeType);
-
-        mediaRecorderRef.current.ondataavailable = (e) => {
-          chunks.push(e.data);
-        };
-        mediaRecorderRef.current.onstop = () => {
-          const blob = new Blob(chunks, {
-            type: mediaRecorderRef.current?.mimeType,
-          });
-          const url = URL.createObjectURL(blob);
-          setVideoUrl(url);
-        };
-        mediaRecorderRef.current.start();
-        setIsRecording(true);
-        setStartScrolling(true); // Start scrolling from beginning
-
-        // Navigate to teleprompter screen
-        setShowTeleprompter(true);
       }
+
+      // Determine the best available MIME type
+      let optionsForRecorder = { mimeType: 'video/webm;codecs=vp8,opus' };
+      if (!MediaRecorder.isTypeSupported(optionsForRecorder.mimeType)) {
+        optionsForRecorder = { mimeType: 'video/webm;codecs=vp8' };
+        if (!MediaRecorder.isTypeSupported(optionsForRecorder.mimeType)) {
+          optionsForRecorder = { mimeType: 'video/webm' };
+          if (!MediaRecorder.isTypeSupported(optionsForRecorder.mimeType)) {
+            optionsForRecorder = { mimeType: '' };
+          }
+        }
+      }
+      mediaRecorderRef.current = new MediaRecorder(stream, optionsForRecorder);
+      setVideoMimeType(mediaRecorderRef.current.mimeType);
+
+      mediaRecorderRef.current.ondataavailable = (e) => {
+        chunks.push(e.data);
+      };
+      mediaRecorderRef.current.onstop = () => {
+        const blob = new Blob(chunks, { type: mediaRecorderRef.current?.mimeType });
+        const url = URL.createObjectURL(blob);
+        setVideoUrl(url);
+      };
+      mediaRecorderRef.current.start();
+      setIsRecording(true);
+      setStartScrolling(true); // Start scrolling from beginning
+
+      // Navigate to teleprompter screen
+      setShowTeleprompter(true);
     } catch (err) {
       console.error('Error accessing media devices.', err);
-      alert(
-        'Error accessing media devices. Please check your camera and microphone permissions.'
-      );
+      alert('Error accessing media devices. Please check your camera and microphone permissions.');
     }
   };
 
@@ -164,9 +87,10 @@ const App: React.FC = () => {
     if (mediaRecorderRef.current) {
       mediaRecorderRef.current.stop();
     }
-    if (mediaStream) {
-      mediaStream.getTracks().forEach((track) => track.stop());
-      setMediaStream(null);
+    if (videoRef.current && videoRef.current.srcObject) {
+      const tracks = (videoRef.current.srcObject as MediaStream).getTracks();
+      tracks.forEach((track) => track.stop());
+      videoRef.current.srcObject = null;
     }
     setIsRecording(false);
     setStartScrolling(false);
@@ -180,9 +104,7 @@ const App: React.FC = () => {
 
   return (
     <div className="min-h-screen bg-gray-900 text-white flex flex-col items-center">
-      <h1 className="text-3xl font-bold mt-6">
-        Teleprompter For Digital Creators
-      </h1>
+      <h1 className="text-3xl font-bold mt-6">Teleprompter For Digital Creators</h1>
       <div className="w-full max-w-[900px] p-4">
         {!videoUrl ? (
           <>
@@ -198,15 +120,13 @@ const App: React.FC = () => {
                 />
                 {isRecording && isCameraRecording && (
                   <>
-                    <div
-                      className="absolute bottom-4 right-4 overflow-hidden bg-black rounded"
-                      style={{
-                        width: '150px',
-                        height: '150px',
-                        aspectRatio: selectedAspectRatio,
-                      }}
-                    >
-                      <canvas ref={canvasRef} className="w-full h-full" />
+                    <div className="absolute bottom-4 right-4 w-32 h-32 md:w-48 md:h-48">
+                      <video
+                        ref={videoRef}
+                        autoPlay
+                        muted
+                        className="w-full h-full object-cover rounded"
+                      />
                     </div>
                     <button
                       onClick={handleStopRecording}
